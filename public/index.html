@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerador de Arte — Alerta + Manchete (Overlay fixa)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
     *{box-sizing:border-box}
@@ -152,20 +152,55 @@
 
       // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
       const badgeText = (els.destaque.value||'').toUpperCase();
-      const badgeH = Math.round(H*0.055);
-      const badgePadX = Math.max(14, Math.round(W*0.015));
-      ctx.font = `800 ${Math.round(badgeH*0.55)}px Poppins`;
-      const badgeW = Math.min(W, Math.max(120, ctx.measureText(badgeText).width + badgePadX*2));
+
+      // Configurações exigidas
+      const BADGE_FONT_SIZE = 50;              // px
+      const BADGE_LETTER_SPACING = 2;          // espaçamento médio entre caracteres (px)
+      const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
+      const BADGE_RIGHT_PADDING = 10;          // padding à direita do texto
+      const BADGE_VPAD = 12;                   // padding vertical interno
+
+      // Funções para medir e desenhar com letter-spacing
+      function textWidthWithSpacing(ctx, text, spacing){
+        let w = 0;
+        for(let i=0;i<text.length;i++){
+          const ch = text[i];
+          w += ctx.measureText(ch).width;
+          if(i < text.length-1) w += spacing;
+        }
+        return w;
+      }
+      function fillTextWithSpacing(ctx, text, x, y, spacing){
+        let dx = x;
+        for(let i=0;i<text.length;i++){
+          const ch = text[i];
+          ctx.fillText(ch, dx, y);
+          dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0);
+        }
+      }
+
+      // Definir fonte Bebas para o alerta
+      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
+      ctx.textBaseline = 'middle';
+
+      // Largura do texto com espaçamento
+      const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
+      const badgeW = Math.min(W, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING);
+      const badgeH = BADGE_FONT_SIZE + BADGE_VPAD*2;
       const gap = Math.max(8, Math.round(H*0.012));
       const badgeY = yTextStart - gap - badgeH;
 
+      // Box amarelo (margem esquerda = 0)
       ctx.fillStyle = brand;
-      ctx.fillRect(0, badgeY, badgeW, badgeH); // margem esquerda = 0
-      ctx.fillStyle = '#111';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(badgeText, badgePadX, Math.round(badgeY + badgeH/2));
+      ctx.fillRect(0, badgeY, badgeW, badgeH);
 
-      // === Desenhar a manchete (em branco), abaixo do box ===
+      // Texto centralizado VERTICALMENTE dentro do box; horizontal começa após padding esquerdo
+      ctx.fillStyle = '#111';
+      const textY = Math.round(badgeY + badgeH/2);
+      const textX = BADGE_LEFT_PADDING; // respeita padding 80px à esquerda
+      fillTextWithSpacing(ctx, badgeText, textX, textY, BADGE_LETTER_SPACING);
+
+      // === Desenhar a manchete (em branco), abaixo do box === (em branco), abaixo do box ===
       ctx.fillStyle = '#fff';
       ctx.font = `800 ${fontSize}px Poppins`;
       let y = yTextStart;
