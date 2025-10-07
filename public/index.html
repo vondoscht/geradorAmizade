@@ -70,6 +70,13 @@
   </div>
 
   <script>
+    // ===== Configuração rápida =====
+    // Altere aqui para ajustar espaçamentos sem mexer no resto do código
+    const CONFIG = {
+      BOTTOM_MARGIN: 80,              // distância da ÚLTIMA linha de texto até a borda inferior
+      GAP_BETWEEN_BOX_AND_TEXT: 40    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
+    };
+
     const $ = (q) => document.querySelector(q);
     const canvas = $('#canvas');
     const ctx = canvas.getContext('2d');
@@ -172,7 +179,7 @@
       const L = Math.max(1, lines.length);
 
       // âncora do bloco pela base: última linha a 80px da margem inferior
-      const BOTTOM_MARGIN = 80; // px
+      const BOTTOM_MARGIN = CONFIG.BOTTOM_MARGIN; // px
       const yFirstBaseline = H - BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
       // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
@@ -210,7 +217,7 @@
 
       // Aumentar distância entre o box e a manchete para não sobrepor
       // distância entre o box e o TOPO da primeira linha (não a baseline)
-      const gapPx = 16;
+      const gapPx = CONFIG.GAP_BETWEEN_BOX_AND_TEXT;
       // medir a altura acima da baseline (ascent) da primeira linha
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       const mHeadline = ctx.measureText(lines[0] || 'Ag');
