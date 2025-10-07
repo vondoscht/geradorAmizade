@@ -160,14 +160,20 @@
 
       // === Manchete: preparar medidas primeiro ===
       const headline = els.manchete.value || '';
-      // Roboto Bold Italic, tamanho fixo para casar com o layout de referência
+      // Roboto Bold Italic
       const HEADLINE_FONT_SIZE = 64; // px
       const HEADLINE_LEFT_PADDING = 80; // px
       const HEADLINE_RIGHT_PADDING = 80; // px
+      const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE * 1.24);
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      const lines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
-      const yTextStart = Math.round(H*0.64 + HEADLINE_FONT_SIZE);
+      const allLines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
+      const lines = allLines.slice(0, 6);
+      const L = Math.max(1, lines.length);
+
+      // âncora do bloco pela base: última linha a 80px da margem inferior
+      const BOTTOM_MARGIN = 80; // px
+      const yFirstBaseline = H - BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
       // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
       const badgeText = (els.destaque.value||'').toUpperCase();
@@ -203,8 +209,8 @@
       const badgeH = BADGE_HEIGHT;
 
       // Aumentar distância entre o box e a manchete para não sobrepor
-      const gap = Math.max(56, Math.round(HEADLINE_FONT_SIZE * 0.7));
-      const badgeY = yTextStart - gap - badgeH;
+      const gap = 16; // distância pedida entre box e texto branco
+      const badgeY = yFirstBaseline - gap - badgeH;
 
       // Desenhar box
       ctx.fillStyle = brand;
@@ -220,7 +226,7 @@
       // === Desenhar a manchete (em branco), abaixo do box === (em branco), abaixo do box ===
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      let y = yTextStart;
+      let y = yFirstBaseline;
       for(const ln of lines.slice(0,6)){
         ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
         y += Math.round(HEADLINE_FONT_SIZE * 1.24);
