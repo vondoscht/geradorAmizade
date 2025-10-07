@@ -140,23 +140,35 @@
 
       // 3) Textos
       const pad = Math.round(W*0.022);
-      // Faixa do Destaque
       const brand = '#FFD400';
-      const badgeH = Math.round(H*0.055);
-      const badgeText = (els.destaque.value||'').toUpperCase();
-      ctx.font = `800 ${Math.round(badgeH*0.55)}px Poppins`;
-      const badgeW = Math.min(W*0.52, Math.max(140, ctx.measureText(badgeText).width + pad*2));
-      ctx.fillStyle = brand; ctx.fillRect(pad*1.2, H - (badgeH*3.2), badgeW, badgeH);
-      ctx.fillStyle = '#111'; ctx.textBaseline='middle';
-      ctx.fillText(badgeText, pad*1.6, H - (badgeH*2.675));
 
-      // Manchete
+      // === Manchete: preparar medidas primeiro ===
       const headline = els.manchete.value || '';
       ctx.fillStyle = '#fff';
       const fontSize = Math.round(W*0.055);
       ctx.font = `800 ${fontSize}px Poppins`;
       const lines = wrapText(headline, W - pad*2);
-      let y = H*0.64 + fontSize;
+      const yTextStart = Math.round(H*0.64 + fontSize);
+
+      // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
+      const badgeText = (els.destaque.value||'').toUpperCase();
+      const badgeH = Math.round(H*0.055);
+      const badgePadX = Math.max(14, Math.round(W*0.015));
+      ctx.font = `800 ${Math.round(badgeH*0.55)}px Poppins`;
+      const badgeW = Math.min(W, Math.max(120, ctx.measureText(badgeText).width + badgePadX*2));
+      const gap = Math.max(8, Math.round(H*0.012));
+      const badgeY = yTextStart - gap - badgeH;
+
+      ctx.fillStyle = brand;
+      ctx.fillRect(0, badgeY, badgeW, badgeH); // margem esquerda = 0
+      ctx.fillStyle = '#111';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, badgePadX, Math.round(badgeY + badgeH/2));
+
+      // === Desenhar a manchete (em branco), abaixo do box ===
+      ctx.fillStyle = '#fff';
+      ctx.font = `800 ${fontSize}px Poppins`;
+      let y = yTextStart;
       for(const ln of lines.slice(0,6)){
         ctx.fillText(ln, pad*1.2, y);
         y += fontSize*1.28;
