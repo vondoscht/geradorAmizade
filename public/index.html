@@ -173,53 +173,51 @@
       const badgeText = (els.destaque.value||'').toUpperCase();
 
       // Configurações exigidas
-      const BADGE_FONT_SIZE = 64;              // px
-      const BADGE_LETTER_SPACING = 4;          // espaçamento médio entre caracteres (px)
+      const BADGE_FONT_SIZE = 64;              // px (Bebas)
+      const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
+      const BADGE_LETTER_SPACING = 2;          // espaçamento entre letras (px)
       const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
-      const BADGE_RIGHT_PADDING = 20;          // padding à direita do texto
-      const BADGE_VPAD = 4;                   // padding vertical interno
+      const BADGE_RIGHT_PADDING = 10;          // padding à direita do texto
 
-      // Funções para medir e desenhar com letter-spacing
+      // Helpers para medir/desenhar com letter-spacing e alinhar ao centro vertical
       function textWidthWithSpacing(ctx, text, spacing){
-        let w = 0;
-        for(let i=0;i<text.length;i++){
-          const ch = text[i];
-          w += ctx.measureText(ch).width;
-          if(i < text.length-1) w += spacing;
-        }
-        return w;
+        let w = 0; for(let i=0;i<text.length;i++){ const ch = text[i]; w += ctx.measureText(ch).width; if(i < text.length-1) w += spacing; } return w;
       }
       function fillTextWithSpacing(ctx, text, x, y, spacing){
-        let dx = x;
-        for(let i=0;i<text.length;i++){
-          const ch = text[i];
-          ctx.fillText(ch, dx, y);
-          dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0);
+        let dx = x; for(let i=0;i<text.length;i++){ const ch = text[i]; ctx.fillText(ch, dx, y); dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0); }
+      }
+      function baselineMiddle(y, h, metrics, fallbackFontSize){
+        if(metrics && metrics.actualBoundingBoxAscent !== undefined && metrics.actualBoundingBoxDescent !== undefined){
+          return y + (h + metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent)/2;
         }
+        return y + h/2 + (fallbackFontSize*0.1); // fallback aproximado
       }
 
-      // Definir fonte Bebas para o alerta
+      // Definir fonte Bebas para medir
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      ctx.textBaseline = 'middle';
+      ctx.textBaseline = 'alphabetic';
 
-      // Largura do texto com espaçamento
+      // Largura do texto com espaçamento e geometria do box
       const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
-      const badgeW = Math.min(W, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING);
-      const badgeH = BADGE_FONT_SIZE + BADGE_VPAD*2;
-      const gap = Math.max(24, Math.round(HEADLINE_FONT_SIZE * 0.35));
+      const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
+      const badgeH = BADGE_HEIGHT;
+
+      // Aumentar distância entre o box e a manchete para não sobrepor
+      const gap = Math.max(56, Math.round(HEADLINE_FONT_SIZE * 0.7));
       const badgeY = yTextStart - gap - badgeH;
 
-      // Box amarelo (margem esquerda = 0)
+      // Desenhar box
       ctx.fillStyle = brand;
       ctx.fillRect(0, badgeY, badgeW, badgeH);
 
-      // Texto centralizado VERTICALMENTE dentro do box; horizontal começa após padding esquerdo
+      // Texto centralizado verticalmente dentro do box; respeita padding à esquerda (80px)
       ctx.fillStyle = '#111';
-      const textY = Math.round(badgeY + badgeH/2);
-      const textX = BADGE_LEFT_PADDING; // respeita padding 80px à esquerda
-      fillTextWithSpacing(ctx, badgeText, textX, textY, BADGE_LETTER_SPACING);
+      const metrics = ctx.measureText(badgeText);
+      const baselineY = Math.round(baselineMiddle(badgeY, badgeH, metrics, BADGE_FONT_SIZE));
+      const textX = BADGE_LEFT_PADDING; // 80px da borda esquerda do box
+      fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // === Desenhar a manchete (em branco), abaixo do box ===
+      // === Desenhar a manchete (em branco), abaixo do box === (em branco), abaixo do box ===
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yTextStart;
