@@ -89,7 +89,7 @@
       if(fontsLoaded) return;
       try{
         await Promise.all([
-          document.fonts.load('400 50px "Bebas Neue"'),
+          document.fonts.load('400 64px "Bebas Neue"'),
           document.fonts.load('700 italic 64px "Roboto"')
         ]);
         await document.fonts.ready;
@@ -173,7 +173,7 @@
       const badgeText = (els.destaque.value||'').toUpperCase();
 
       // Configurações exigidas
-      const BADGE_FONT_SIZE = 50;              // px
+      const BADGE_FONT_SIZE = 64;              // px
       const BADGE_LETTER_SPACING = 2;          // espaçamento médio entre caracteres (px)
       const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
       const BADGE_RIGHT_PADDING = 10;          // padding à direita do texto
@@ -206,7 +206,7 @@
       const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
       const badgeW = Math.min(W, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING);
       const badgeH = BADGE_FONT_SIZE + BADGE_VPAD*2;
-      const gap = Math.max(8, Math.round(H*0.012));
+      const gap = Math.max(24, Math.round(HEADLINE_FONT_SIZE * 0.35));
       const badgeY = yTextStart - gap - badgeH;
 
       // Box amarelo (margem esquerda = 0)
