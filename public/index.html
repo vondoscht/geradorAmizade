@@ -83,6 +83,20 @@
       clear:    $('#clear')
     };
 
+    // --- Garantir que as fontes carregaram antes de desenhar no Canvas ---
+    let fontsLoaded = false;
+    async function ensureFonts(){
+      if(fontsLoaded) return;
+      try{
+        await Promise.all([
+          document.fonts.load('400 50px "Bebas Neue"'),
+          document.fonts.load('800 48px "Poppins"')
+        ]);
+        await document.fonts.ready;
+      }catch(e){ /* ignora */ }
+      fontsLoaded = true;
+    }
+
     // Overlay fixa (arquivo em /public/overlay.png)
     const OVERLAY_SRC = 'overlay.png';
 
@@ -121,6 +135,8 @@
     }
 
     async function render(){
+      // aguarda as fontes (Bebas Neue / Poppins) para evitar fallback
+      await ensureFonts();
       const W = 1080, H = 1350; // fixo
       canvas.width = W; canvas.height = H;
       ctx.clearRect(0,0,W,H);
