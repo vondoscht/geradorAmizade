@@ -3,16 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gerador de Arte — Destaque + Manchete</title>
+  <title>Gerador de Arte — Destaque + Manchete (com Overlay)</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0d0f13,#0b0b0c);color:var(--ink);font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#0d0f13, #0b0b0c);color:var(--ink);font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     header{padding:20px 24px 8px;display:flex;align-items:center;gap:12px}
     header h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
     .app{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:0 24px 24px}
-    @media (max-width: 980px){ .app{grid-template-columns:1fr} }
     .panel{background:var(--panel);border:1px solid #23262d;border-radius:16px;padding:16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
     .panel h2{margin:4px 6px 12px;font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.12em}
     label{display:block;font-size:12px;color:var(--muted);margin:10px 6px 6px}
@@ -20,7 +19,7 @@
     textarea{min-height:110px;resize:vertical}
     .row{display:flex;gap:10px;align-items:center}
     .row > *{flex:1}
-    .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .btns{display:flex;gap:10px;margin-top:12px}
     button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
     button.primary{background:var(--brand);color:#151515;border-color:#d6b700}
     button:disabled{opacity:.5;cursor:not-allowed}
@@ -28,13 +27,13 @@
     .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
     .ghost{font-size:13px;color:#9199a6}
     .note{font-size:12px;color:#8892a0}
-    .code{font-family:ui-monospace,Menlo,Consolas,monospace}
+    .code{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono"}
   </style>
 </head>
 <body>
   <header>
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" stroke="#ffd400" stroke-width="2"/><path d="M12 6.5V13M12 17.5h.01" stroke="#ffd400" stroke-width="2" stroke-linecap="round"/></svg>
-    <h1>Gerador de Arte — Destaque + Manchete</h1>
+    <h1>Gerador de Arte — Destaque + Manchete (com Overlay)</h1>
   </header>
 
   <div class="app">
@@ -65,9 +64,9 @@
         <div>
           <label for="ratio">Proporção</label>
           <select id="ratio">
-            <option value="1080x1350" selected>4:5 (1080×1350)</option>
-            <option value="1080x1080">1:1 (1080×1080)</option>
-            <option value="1080x1920">9:16 (1080×1920)</option>
+            <option value="1080x1350" selected>4:5 (1080×1350) — Instagram retrato</option>
+            <option value="1080x1080">1:1 (1080×1080) — Quadrado</option>
+            <option value="1080x1920">9:16 (1080×1920) — Stories/Reels</option>
           </select>
         </div>
       </div>
@@ -87,10 +86,9 @@
       <div class="btns">
         <button id="render" class="primary">Gerar imagem</button>
         <button id="download" disabled>Baixar PNG</button>
-        <button id="share">Copiar link do template</button>
         <button id="clear">Limpar</button>
       </div>
-      <p class="note">Ordem das camadas: <b>Foto → Overlay → Textos/Selo</b>. Os textos sempre ficam por cima.</p>
+      <p class="note">Ordem de camadas: Foto → Overlay → Textos/Selo. Assim, os textos ficam sempre acima da overlay.</p>
     </section>
 
     <section class="stage">
@@ -117,12 +115,10 @@
       shade:    $('#shade'),
       render:   $('#render'),
       download: $('#download'),
-      share:    $('#share'),
       clear:    $('#clear')
     };
 
-    // tenta usar overlay padrão public/overlay.png (se não existir, ignora)
-    let bgURL = null, overlayURL = "overlay.png", logoURL = null;
+    let bgURL = null, overlayURL = null, logoURL = null;
 
     function fileToURL(input, setter){
       input.addEventListener('change', () => {
@@ -132,6 +128,7 @@
         } else setter(null);
       });
     }
+
     fileToURL(els.upload,  (u)=>{bgURL=u});
     fileToURL(els.overlay, (u)=>{overlayURL=u});
     fileToURL(els.logo,    (u)=>{logoURL=u});
@@ -145,13 +142,16 @@
       const iw = img.width, ih = img.height;
       const ir = iw/ih, r = w/h;
       let dw, dh, dx, dy;
-      if(ir > r){ dh = h; dw = dh*ir; dx = x + (w-dw)/2; dy = y; }
-      else { dw = w; dh = dw/ir; dx = x; dy = y + (h-dh)/2; }
+      if(ir > r){
+        dh = h; dw = dh*ir; dx = x + (w-dw)/2; dy = y;
+      } else {
+        dw = w; dh = dw/ir; dx = x; dy = y + (h-dh)/2;
+      }
       ctx.drawImage(img, dx, dy, dw, dh);
     }
 
-    function wrapText(text, maxWidth){
-      const words = (text||"").split(/\s+/); let line = '', lines=[];
+    function wrapText(text, maxWidth, lineHeight){
+      const words = text.split(/\s+/); let line = '', lines=[];
       for(const w of words){
         const test = line ? line + ' ' + w : w;
         const m = ctx.measureText(test).width;
@@ -163,13 +163,7 @@
     }
 
     async function loadImage(url){
-      return new Promise((res)=>{ 
-        if(!url) return res(null); 
-        const img=new Image(); 
-        img.onload=()=>res(img); 
-        img.onerror=()=>res(null); 
-        img.src=url; 
-      });
+      return new Promise((res, rej)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=url; });
     }
 
     async function render(){
@@ -177,7 +171,7 @@
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0,0,W,H);
 
-      // 1) Foto de fundo
+      // 1) BG photo
       if(bgURL){
         const bg = await loadImage(bgURL);
         if(bg) drawCover(bg,0,0,W,H);
@@ -186,42 +180,44 @@
         ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
       }
 
-      // 2) Overlay
+      // 2) Overlay (above photo)
       if(overlayURL){
         const ov = await loadImage(overlayURL);
         if(ov) ctx.drawImage(ov, 0, 0, W, H);
       }
 
-      // 3) Textos
+      // 3) Texts (above overlay)
       const brand = els.brand.value || '#FFD400';
       const pad = Math.round(W*0.022);
-
-      // Faixa do Destaque
+      // Badge
       const badgeH = Math.round(H*0.055);
       const badgeText = (els.destaque.value||'').toUpperCase();
       ctx.font = `800 ${Math.round(badgeH*0.55)}px Poppins`;
-      const badgeW = Math.min(W*0.52, Math.max(140, ctx.measureText(badgeText).width + pad*2));
+      const badgeW = Math.min(W*0.5, Math.max(140, ctx.measureText(badgeText).width + pad*2));
       ctx.fillStyle = brand; ctx.fillRect(pad*1.2, H - (badgeH*3.2), badgeW, badgeH);
       ctx.fillStyle = '#111'; ctx.textBaseline='middle';
       ctx.fillText(badgeText, pad*1.6, H - (badgeH*2.675));
 
-      // Painel escuro da manchete (degradê inferior)
-      const shade = (+els.shade.value||85)/100;
+      // Headline panel (dark gradient)
+      const shade = (+els.shade.value||85)/100; // 0..1
       const g = ctx.createLinearGradient(0, H*0.65, 0, H);
       g.addColorStop(0, `rgba(0,0,0,${Math.max(0,shade-0.35)})`);
       g.addColorStop(1, `rgba(0,0,0,${shade})`);
       ctx.fillStyle = g; ctx.fillRect(0, H*0.60, W, H*0.40);
 
-      // Manchete
+      // Headline text
       const headline = els.manchete.value || '';
       ctx.fillStyle = '#fff';
       const fontSize = Math.round(W*0.055);
       ctx.font = `800 ${fontSize}px Poppins`;
-      const lines = wrapText(headline, W - pad*2);
+      const lines = wrapText(headline, W - pad*2, Math.round(fontSize*1.25));
       let y = H*0.64 + fontSize;
-      for(const ln of lines.slice(0,6)){ ctx.fillText(ln, pad*1.2, y); y += fontSize*1.28; }
+      for(const ln of lines.slice(0,6)){
+        ctx.fillText(ln, pad*1.2, y);
+        y += fontSize*1.28;
+      }
 
-      // Logo (canto superior direito)
+      // 4) Optional logo on top-right (above everything)
       if(logoURL){
         const lg = await loadImage(logoURL);
         if(lg){
@@ -242,19 +238,6 @@
       link.click();
     });
 
-    function enc(v){ return encodeURIComponent(v||""); }
-    function dec(v){ return decodeURIComponent(v||""); }
-    // carrega campos a partir da URL (?d=...&m=...)
-    const params = new URLSearchParams(location.search);
-    if(params.has("d")) els.destaque.value = dec(params.get("d"));
-    if(params.has("m")) els.manchete.value = dec(params.get("m"));
-
-    els.share.addEventListener('click', async ()=>{
-      const url = `${location.origin}${location.pathname}?d=${enc(els.destaque.value)}&m=${enc(els.manchete.value)}`;
-      await navigator.clipboard.writeText(url);
-      alert("Link copiado!");
-    });
-
     els.clear.addEventListener('click', ()=>{
       els.destaque.value = 'ALERTA';
       els.manchete.value = '';
@@ -263,8 +246,7 @@
       els.logo.value = '';
       els.brand.value = '#FFD400';
       els.shade.value = 85;
-      bgURL = overlayURL = "overlay.png";
-      logoURL = null;
+      bgURL = overlayURL = logoURL = null;
       setCanvasSize(); ctx.clearRect(0,0,canvas.width, canvas.height);
       els.download.disabled = true;
     });
