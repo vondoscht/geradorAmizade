@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerador de Arte — Alerta + Manchete (Overlay fixa)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
     *{box-sizing:border-box}
@@ -90,10 +90,10 @@
       try{
         await Promise.all([
           document.fonts.load('400 50px "Bebas Neue"'),
-          document.fonts.load('800 48px "Poppins"')
+          document.fonts.load('700 italic 64px "Roboto"')
         ]);
         await document.fonts.ready;
-      }catch(e){ /* ignora */ }
+      }catch(e){ /* ignore */ }
       fontsLoaded = true;
     }
 
@@ -160,11 +160,14 @@
 
       // === Manchete: preparar medidas primeiro ===
       const headline = els.manchete.value || '';
+      // Roboto Bold Italic, tamanho fixo para casar com o layout de referência
+      const HEADLINE_FONT_SIZE = 64; // px
+      const HEADLINE_LEFT_PADDING = 80; // px
+      const HEADLINE_RIGHT_PADDING = 80; // px
       ctx.fillStyle = '#fff';
-      const fontSize = Math.round(W*0.055);
-      ctx.font = `800 ${fontSize}px Poppins`;
-      const lines = wrapText(headline, W - pad*2);
-      const yTextStart = Math.round(H*0.64 + fontSize);
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      const lines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
+      const yTextStart = Math.round(H*0.64 + HEADLINE_FONT_SIZE);
 
       // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
       const badgeText = (els.destaque.value||'').toUpperCase();
@@ -216,13 +219,13 @@
       const textX = BADGE_LEFT_PADDING; // respeita padding 80px à esquerda
       fillTextWithSpacing(ctx, badgeText, textX, textY, BADGE_LETTER_SPACING);
 
-      // === Desenhar a manchete (em branco), abaixo do box === (em branco), abaixo do box ===
+      // === Desenhar a manchete (em branco), abaixo do box ===
       ctx.fillStyle = '#fff';
-      ctx.font = `800 ${fontSize}px Poppins`;
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yTextStart;
       for(const ln of lines.slice(0,6)){
-        ctx.fillText(ln, pad*1.2, y);
-        y += fontSize*1.28;
+        ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
+        y += Math.round(HEADLINE_FONT_SIZE * 1.24);
       }
 
       els.download.disabled = false;
