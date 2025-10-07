@@ -209,8 +209,17 @@
       const badgeH = BADGE_HEIGHT;
 
       // Aumentar distância entre o box e a manchete para não sobrepor
-      const gap = 16; // distância pedida entre box e texto branco
-      const badgeY = yFirstBaseline - gap - badgeH;
+      // distância entre o box e o TOPO da primeira linha (não a baseline)
+      const gapPx = 16;
+      // medir a altura acima da baseline (ascent) da primeira linha
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      const mHeadline = ctx.measureText(lines[0] || 'Ag');
+      const ascent = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined)
+        ? mHeadline.actualBoundingBoxAscent
+        : Math.round(HEADLINE_FONT_SIZE * 0.8); // fallback aproximado
+      // posicionar o box para que o seu fundo fique gapPx acima do topo visual do texto
+      const firstLineTopY = yFirstBaseline - ascent;
+      const badgeY = firstLineTopY - gapPx - badgeH;
 
       // Desenhar box
       ctx.fillStyle = brand;
