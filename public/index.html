@@ -87,6 +87,7 @@
       <div class="btns">
         <button id="render" class="primary">Gerar imagem</button>
         <button id="download" disabled>Baixar PNG</button>
+        <button id="share">Copiar link do template</button>
         <button id="clear">Limpar</button>
       </div>
       <p class="note">Ordem das camadas: <b>Foto → Overlay → Textos/Selo</b>. Os textos sempre ficam por cima.</p>
@@ -116,10 +117,12 @@
       shade:    $('#shade'),
       render:   $('#render'),
       download: $('#download'),
+      share:    $('#share'),
       clear:    $('#clear')
     };
 
-    let bgURL = null, overlayURL = null, logoURL = null;
+    // tenta usar overlay padrão public/overlay.png (se não existir, ignora)
+    let bgURL = null, overlayURL = "overlay.png", logoURL = null;
 
     function fileToURL(input, setter){
       input.addEventListener('change', () => {
@@ -129,7 +132,6 @@
         } else setter(null);
       });
     }
-
     fileToURL(els.upload,  (u)=>{bgURL=u});
     fileToURL(els.overlay, (u)=>{overlayURL=u});
     fileToURL(els.logo,    (u)=>{logoURL=u});
@@ -161,7 +163,13 @@
     }
 
     async function loadImage(url){
-      return new Promise((res, rej)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=url; });
+      return new Promise((res)=>{ 
+        if(!url) return res(null); 
+        const img=new Image(); 
+        img.onload=()=>res(img); 
+        img.onerror=()=>res(null); 
+        img.src=url; 
+      });
     }
 
     async function render(){
@@ -169,7 +177,7 @@
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0,0,W,H);
 
-      // 1) Fundo
+      // 1) Foto de fundo
       if(bgURL){
         const bg = await loadImage(bgURL);
         if(bg) drawCover(bg,0,0,W,H);
@@ -184,7 +192,7 @@
         if(ov) ctx.drawImage(ov, 0, 0, W, H);
       }
 
-      // 3) Textos (acima de tudo)
+      // 3) Textos
       const brand = els.brand.value || '#FFD400';
       const pad = Math.round(W*0.022);
 
@@ -234,6 +242,19 @@
       link.click();
     });
 
+    function enc(v){ return encodeURIComponent(v||""); }
+    function dec(v){ return decodeURIComponent(v||""); }
+    // carrega campos a partir da URL (?d=...&m=...)
+    const params = new URLSearchParams(location.search);
+    if(params.has("d")) els.destaque.value = dec(params.get("d"));
+    if(params.has("m")) els.manchete.value = dec(params.get("m"));
+
+    els.share.addEventListener('click', async ()=>{
+      const url = `${location.origin}${location.pathname}?d=${enc(els.destaque.value)}&m=${enc(els.manchete.value)}`;
+      await navigator.clipboard.writeText(url);
+      alert("Link copiado!");
+    });
+
     els.clear.addEventListener('click', ()=>{
       els.destaque.value = 'ALERTA';
       els.manchete.value = '';
@@ -242,7 +263,8 @@
       els.logo.value = '';
       els.brand.value = '#FFD400';
       els.shade.value = 85;
-      bgURL = overlayURL = logoURL = null;
+      bgURL = overlayURL = "overlay.png";
+      logoURL = null;
       setCanvasSize(); ctx.clearRect(0,0,canvas.width, canvas.height);
       els.download.disabled = true;
     });
