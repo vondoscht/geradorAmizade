@@ -48,7 +48,7 @@
 
       <!-- 3) Manchete -->
       <label for="manchete">3. Manchete</label>
-      <textarea id="manchete" placeholder="Manchete" value="URGENTE" ></textarea>
+      <textarea id="manchete" placeholder="Manchete" value="Manchete" ></textarea>
 
       <div class="btns">
         <button id="downloadBtn" class="primary">Baixar Imagem</button>
@@ -107,12 +107,24 @@
 
     // Overlay fixa
     const OVERLAY_SRC = 'overlay.png';
+// Pré-carrega overlay (evita tela preta entre frames)
+let ovImg=null; (function preloadOverlay(){ const img=new Image(); img.onload=()=>{ ovImg=img; render(); }; img.src=OVERLAY_SRC; })();
+
+// Troca/Carrega a foto de fundo apenas uma vez e faz cache (para arrastar sem piscar)
+function setBg(file){
+  panX = 0;
+  if(bgURL) URL.revokeObjectURL(bgURL);
+  if(!file){ bgURL=null; bgImg=null; render(); return; }
+  bgURL = URL.createObjectURL(file);
+  bgLoading = true;
+  loadImage(bgURL).then(img=>{ bgImg = img; bgLoading = false; render(); });
+}
 
     // Fundo e pan horizontal
-    let bgURL = null; let panX = 0; let panLimit = 0;
+    let bgURL=null, bgImg=null, bgLoading=false; let panX=0, panLimit=0;
     const wrapEl = document.querySelector('.canvas-wrap');
 
-    els.upload.addEventListener('change', ()=>{ panX=0; bgURL = (els.upload.files && els.upload.files[0]) ? URL.createObjectURL(els.upload.files[0]) : null; });
+    els.upload.addEventListener('change', ()=>{ setBg(els.upload.files && els.upload.files[0]); });
 
     function getScale(){ const r = canvas.getBoundingClientRect(); return r.width / canvas.width; }
     const drag = { active:false, startX:0, startPan:0, scale:1 };
@@ -151,13 +163,15 @@
     async function render(){
       await ensureFonts();
       const W=1080, H=1350; canvas.width=W; canvas.height=H; ctx.clearRect(0,0,W,H);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
       // 1) Fundo
-      if(bgURL){ const bg = await loadImage(bgURL); if(bg) drawCover(bg,0,0,W,H); }
+      if(bgImg){ drawCover(bgImg,0,0,W,H); }
       else { ctx.fillStyle='#333'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#777'; ctx.font='600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48); }
 
       // 2) Overlay
-      const ov = await loadImage(OVERLAY_SRC); if(ov) ctx.drawImage(ov,0,0,W,H);
+      if(ovImg) ctx.drawImage(ovImg,0,0,W,H);
 
       // 3) Tipografia
       const brand = '#FFD400';
