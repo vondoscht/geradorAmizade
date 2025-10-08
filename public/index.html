@@ -14,6 +14,7 @@
     body{margin:0;background:linear-gradient(180deg,#0d0f13,#0b0b0c);color:var(--ink);font-family:"Roboto",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     header{padding:30px;display:flex;align-items:center;gap:12px}
     header h1{font-size:24px;margin:0;font-weight:700;letter-spacing:.2px}
+
     .app{display:grid;grid-template-columns:420px 1fr;gap:20px;padding:0 24px 24px}
     @media (max-width: 980px){ .app{grid-template-columns:1fr} }
 
@@ -23,6 +24,7 @@
     .field{margin:14px 8px}
     .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
     .control{position:relative}
+
     .input, .textarea{
       width:100%; background:var(--field); color:var(--ink);
       border:1px solid #2a2f39; border-radius:12px;
@@ -34,23 +36,34 @@
       box-shadow:0 0 0 4px rgba(47,90,255,var(--ring-alpha));
     }
 
-    /* === Upload: botão pílula, full-width, sem ícone === */
-    .upload-wrap{position:relative}
-    .upload-input{
-      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
-      overflow:hidden; clip:rect(0,0,0,0); border:0
+    /* === Upload (reset + layout final) === */
+    .upload-wrap{ 
+      position: relative; 
+      display: block;
     }
+    .upload-input{ /* input escondido e acessível */
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); border:0;
+    }
+    /* Botão pílula full-width, texto centralizado */
     .upload-btn{
       display:flex; justify-content:center; align-items:center;
-      width:100%; height:56px; padding:0 20px;
-      background:#171a22; color:#eaeaea;
+      width:100%; height:56px; padding:0 24px;
       border:1px solid #2a2f39; border-radius:9999px; /* pílula */
-      font-weight:700; font-size:16px; letter-spacing:.2px;
+      background:#171a22; color:#eaeaea;
+      font:700 16px/1 Roboto, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      letter-spacing:.2px; text-align:center; white-space:nowrap;
       cursor:pointer; user-select:none;
-      transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
+      transition:border-color .15s, background .15s, box-shadow .15s, transform .06s;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
     .upload-btn:hover{ border-color:#3a4150; background:#1a1e27 }
     .upload-btn:active{ transform:translateY(1px) }
+    .upload-btn:focus-visible{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(47,90,255,.35);
+      border-color:rgba(47,90,255,.6);
+    }
     .upload-btn.is-dragover{
       border-color:var(--brand);
       box-shadow:0 0 0 4px rgba(255,212,0,.22);
@@ -74,7 +87,7 @@
       text-align:left;
       font-size:12px;
       color:#8892a0;
-      padding:10px 30px;
+      padding:30px;
     }
     .credits a{ color:#8892a0; text-decoration:none }
     .credits a:hover{ color:#c2c8d0 }
@@ -92,8 +105,8 @@
         <label for="upload">Foto de fundo</label>
         <div class="upload-wrap">
           <input id="upload" class="upload-input" type="file" accept="image/*" />
-          <label for="upload" class="upload-btn" id="uploadBtn" title="Fazer upload da imagem" tabindex="0">
-            Fazer upload de imagem
+          <label for="upload" class="upload-btn" id="uploadBtn" title="Carregar imagem">
+            Carregar imagem
           </label>
         </div>
       </div>
@@ -411,9 +424,8 @@
     els.uploadBtn.addEventListener('drop', async (e)=>{
       e.preventDefault(); e.stopPropagation();
       els.uploadBtn.classList.remove('is-dragover');
-      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (!file || !file.type || !file.type.startsWith('image/')) return;
-
+      const file = e.dataTransfer?.files?.[0];
+      if (!file || !file.type?.startsWith('image/')) return;
       revokeBgURL();
       bgURL = URL.createObjectURL(file);
       bgImg = await loadImage(bgURL);
