@@ -48,7 +48,7 @@
 
       <!-- 3) Manchete -->
       <label for="manchete">3. Manchete</label>
-      <textarea id="manchete" placeholder="Manchete" value="Manchete" ></textarea>
+      <textarea id="manchete" placeholder="Manchete" value="URGENTE" ></textarea>
 
       <div class="btns">
         <button id="downloadBtn" class="primary">Baixar Imagem</button>
@@ -86,12 +86,17 @@
     async function ensureFonts(){
       if(fontsLoaded) return;
       try{
-        await Promise.all([
-          document.fonts.load('400 64px "Bebas Neue"'),
-          document.fonts.load('700 italic 64px "Roboto"')
+        const loads = [];
+        if(document.fonts && document.fonts.load){
+          loads.push(document.fonts.load('400 64px "Bebas Neue"'));
+          loads.push(document.fonts.load('700 italic 64px "Roboto"'));
+          loads.push(document.fonts.ready);
+        }
+        await Promise.race([
+          Promise.all(loads),
+          new Promise(res => setTimeout(res, 900)) // fallback: segue em ~0.9s mesmo se fontes demorarem
         ]);
-        await document.fonts.ready;
-      }catch(e){}
+      }catch(e){ /* segue com fallback */ }
       fontsLoaded = true;
     }
 
@@ -129,10 +134,10 @@ function setBg(file){
     function getScale(){ const r = canvas.getBoundingClientRect(); return r.width / canvas.width; }
     const drag = { active:false, startX:0, startPan:0, scale:1 };
     canvas.addEventListener('mousedown', (e)=>{ if(!bgURL) return; drag.active=true; drag.startX=e.clientX; drag.scale=getScale(); drag.startPan=panX; wrapEl.style.cursor='grabbing'; });
-    window.addEventListener('mousemove', (e)=>{ if(!drag.active) return; const dx=(e.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); render(); });
+    window.addEventListener('mousemove', (e)=>{ if(!drag.active) return; const dx=(e.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); queueRender(); });
     window.addEventListener('mouseup', ()=>{ if(!drag.active) return; drag.active=false; wrapEl.style.cursor='grab'; });
     canvas.addEventListener('touchstart', (e)=>{ if(!bgURL) return; const t=e.touches[0]; drag.active=true; drag.startX=t.clientX; drag.scale=getScale(); drag.startPan=panX; wrapEl.style.cursor='grabbing'; e.preventDefault(); }, {passive:false});
-    window.addEventListener('touchmove', (e)=>{ if(!drag.active) return; const t=e.touches[0]; const dx=(t.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); render(); e.preventDefault(); }, {passive:false});
+    window.addEventListener('touchmove', (e)=>{ if(!drag.active) return; const t=e.touches[0]; const dx=(t.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); queueRender(); e.preventDefault(); }, {passive:false}); }, {passive:false});
     window.addEventListener('touchend', ()=>{ if(!drag.active) return; drag.active=false; wrapEl.style.cursor='grab'; });
 
     // Helpers
