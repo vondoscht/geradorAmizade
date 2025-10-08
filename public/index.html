@@ -4,14 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerador de Arte — Alerta + Manchete (Overlay fixa)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0d0f13,#0b0b0c);color:var(--ink);font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:linear-gradient(180deg,#0d0f13,#0b0b0c);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     header{padding:20px 24px 8px;display:flex;align-items:center;gap:12px}
     header h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
-    .app{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:0 24px 24px}
+    .app{display:grid;grid-template-columns:360px 1fr;gap:18px;padding:0 24px 24px}
     @media (max-width: 980px){ .app{grid-template-columns:1fr} }
     .panel{background:var(--panel);border:1px solid #23262d;border-radius:16px;padding:16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
     .panel h2{margin:4px 6px 12px;font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.12em}
@@ -26,8 +26,17 @@
     button:disabled{opacity:.5;cursor:not-allowed}
     .stage{background:#0b0c0e;border:1px solid #23262d;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}
     .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
+    canvas{display:block}
     .ghost{font-size:13px;color:#9199a6}
     .note{font-size:12px;color:#8892a0}
+
+    /* ===== Edição no preview (overlay HTML) ===== */
+    .live-overlay{position:absolute;inset:0;pointer-events:none}
+    .badge-edit, .headline-edit{position:absolute;pointer-events:auto;user-select:text;caret-color:#fff}
+    .badge-edit{color:#111;white-space:nowrap;overflow:hidden}
+    .badge-edit:focus{outline:2px dashed rgba(255,212,0,.6)}
+    .headline-edit{color:#fff;white-space:pre-wrap;word-break:break-word}
+    .headline-edit:focus{outline:2px dashed rgba(255,255,255,.3)}
   </style>
 </head>
 <body>
@@ -53,28 +62,40 @@
       </div>
 
       <div class="btns">
-        <button id="render" class="primary">Gerar imagem</button>
+        <button id="render" class="primary">Atualizar preview</button>
         <button id="download" disabled>Baixar PNG</button>
         <button id="clear">Limpar</button>
       </div>
-      <p class="note">Tamanho fixo: <b>1080×1350</b>. A foto é ajustada em <em>cover</em> (corta o excesso para preencher).</p>
+      <p class="note">Edição direta no preview: clique no <b>box amarelo</b> ou na <b>manchete</b> sobre a imagem e digite. O PNG sai em 1080×1350.</p>
       <p class="note">Coloque a sua overlay como <code>/public/overlay.png</code> (PNG transparente). Ela será aplicada acima da foto, e os textos acima dela.</p>
     </section>
 
     <section class="stage">
       <div class="canvas-wrap">
         <canvas id="canvas" width="1080" height="1350" style="width: 420px; height: auto; max-width: 100%;"></canvas>
+        <div id="live" class="live-overlay">
+          <div id="badgeEdit" class="badge-edit" contenteditable="true" spellcheck="false"></div>
+          <div id="headlineEdit" class="headline-edit" contenteditable="true" spellcheck="false"></div>
+        </div>
       </div>
-      <div class="ghost">Pré-visualização do resultado (clique em “Gerar imagem”).</div>
+      <div class="ghost">Clique no box/na manchete para editar no lugar. Depois baixe o PNG.</div>
     </section>
   </div>
 
   <script>
-    // ===== Configuração rápida =====
-    // Altere aqui para ajustar espaçamentos sem mexer no resto do código
+    // ===== Config geral =====
     const CONFIG = {
-      BOTTOM_MARGIN: 120,              // distância da ÚLTIMA linha de texto até a borda inferior
-      GAP_BETWEEN_BOX_AND_TEXT: 36    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
+      BOTTOM_MARGIN: 120,              // distância da ÚLTIMA linha até a borda inferior
+      GAP_BETWEEN_BOX_AND_TEXT: 36,    // distância entre fundo do box e TOPO da 1ª linha
+      BADGE_FONT_SIZE: 64,
+      BADGE_HEIGHT: 80,
+      BADGE_LETTER_SPACING: 4,
+      BADGE_LEFT_PADDING: 80,
+      BADGE_RIGHT_PADDING: 20,
+      HEADLINE_FONT_SIZE: 64,
+      HEADLINE_LEFT_PADDING: 80,
+      HEADLINE_RIGHT_PADDING: 80,
+      HEADLINE_LINE_HEIGHT: 1.24
     };
 
     const $ = (q) => document.querySelector(q);
@@ -87,189 +108,181 @@
       upload:   $('#upload'),
       render:   $('#render'),
       download: $('#download'),
-      clear:    $('#clear')
+      clear:    $('#clear'),
+      live:     $('#live'),
+      badgeEdit: $('#badgeEdit'),
+      headlineEdit: $('#headlineEdit')
     };
 
-    // --- Garantir que as fontes carregaram antes de desenhar no Canvas ---
+    // Fonts
     let fontsLoaded = false;
     async function ensureFonts(){
-      if(fontsLoaded) return;
-      try{
+      if(fontsLoaded) return; try{
         await Promise.all([
-          document.fonts.load('400 64px "Bebas Neue"'),
-          document.fonts.load('700 italic 64px "Roboto"')
+          document.fonts.load(`400 ${CONFIG.BADGE_FONT_SIZE}px "Bebas Neue"`),
+          document.fonts.load(`700 italic ${CONFIG.HEADLINE_FONT_SIZE}px Roboto`)
         ]);
-        await document.fonts.ready;
-      }catch(e){ /* ignore */ }
-      fontsLoaded = true;
+        await document.fonts.ready; fontsLoaded = true;
+      }catch(e){ fontsLoaded = true; }
     }
 
-    // Overlay fixa (arquivo em /public/overlay.png)
+    // Assets
     const OVERLAY_SRC = 'overlay.png';
-
-    let bgURL = null; // apenas a foto muda
+    let bgURL = null;
 
     els.upload.addEventListener('change', () => {
       if(els.upload.files && els.upload.files[0]){
         bgURL = URL.createObjectURL(els.upload.files[0]);
       } else bgURL = null;
+      renderPreview();
     });
 
-    // ===== Helpers =====
+    // Helpers
     function drawCover(img, x, y, w, h){
-      const iw = img.width, ih = img.height;
-      const ir = iw/ih, r = w/h;
-      let dw, dh, dx, dy;
+      const iw = img.width, ih = img.height; const ir = iw/ih, r = w/h; let dw, dh, dx, dy;
       if(ir > r){ dh = h; dw = dh*ir; dx = x + (w-dw)/2; dy = y; }
       else { dw = w; dh = dw/ir; dx = x; dy = y + (h-dh)/2; }
       ctx.drawImage(img, dx, dy, dw, dh);
     }
-
     function wrapText(text, maxWidth){
       const words = (text||'').split(/\s+/); let line = '', lines=[];
-      for(const w of words){
-        const test = line ? line + ' ' + w : w;
-        const m = ctx.measureText(test).width;
-        if(m > maxWidth && line){ lines.push(line); line = w; }
-        else line = test;
-      }
-      if(line) lines.push(line);
-      return lines;
+      for(const w of words){ const test = line ? line + ' ' + w : w; const m = ctx.measureText(test).width; if(m > maxWidth && line){ lines.push(line); line = w; } else line = test; }
+      if(line) lines.push(line); return lines;
     }
+    function loadImage(url){ return new Promise((res)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=()=>res(null); img.src=url; }); }
 
-    function loadImage(url){
-      return new Promise((res)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=()=>res(null); img.src=url; });
-    }
-
-    async function render(){
-      // aguarda as fontes (Bebas Neue / Poppins) para evitar fallback
-      await ensureFonts();
+    // ==== Layout computation (shared by preview + final render + overlay) ====
+    function computeLayout(badgeText, headline){
       const W = 1080, H = 1350; // fixo
-      canvas.width = W; canvas.height = H;
-      ctx.clearRect(0,0,W,H);
-
-      // 1) Fundo (cover/crop)
-      if(bgURL){
-        const bg = await loadImage(bgURL);
-        if(bg) drawCover(bg,0,0,W,H);
-      } else {
-        ctx.fillStyle = '#333'; ctx.fillRect(0,0,W,H);
-        ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
-      }
-
-      // 2) Overlay fixa
-      const ov = await loadImage(OVERLAY_SRC);
-      if(ov) ctx.drawImage(ov, 0, 0, W, H);
-
-      // 3) Textos
-      const pad = Math.round(W*0.022);
-      const brand = '#FFD400';
-
-      // === Manchete: preparar medidas primeiro ===
-      const headline = els.manchete.value || '';
-      // Roboto Bold Italic
-      const HEADLINE_FONT_SIZE = 64; // px
-      const HEADLINE_LEFT_PADDING = 80; // px
-      const HEADLINE_RIGHT_PADDING = 80; // px
-      const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE * 1.24);
-      ctx.fillStyle = '#fff';
-      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      const allLines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
-      const lines = allLines.slice(0, 6);
+      // Headline metrics
+      const HF = CONFIG.HEADLINE_FONT_SIZE; const HL = Math.round(HF * CONFIG.HEADLINE_LINE_HEIGHT);
+      ctx.font = `700 italic ${HF}px Roboto, system-ui, sans-serif`;
+      const lines = wrapText(headline, W - CONFIG.HEADLINE_LEFT_PADDING - CONFIG.HEADLINE_RIGHT_PADDING).slice(0,6);
       const L = Math.max(1, lines.length);
-
-      // âncora do bloco pela base: última linha a 80px da margem inferior
-      const BOTTOM_MARGIN = CONFIG.BOTTOM_MARGIN; // px
-      const yFirstBaseline = H - BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
-
-      // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
-      const badgeText = (els.destaque.value||'').toUpperCase();
-
-      // Configurações exigidas
-      const BADGE_FONT_SIZE = 64;              // px (Bebas)
-      const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
-      const BADGE_LETTER_SPACING = 4;          // espaçamento entre letras (px)
-      const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
-      const BADGE_RIGHT_PADDING = 20;
-      const OPTICAL_NUDGE_Y = 0; // ajuste fino vertical (px). Se achar que ficou alto/baixo, mude aqui.          // padding à direita do texto
-
-      // Helpers para medir/desenhar com letter-spacing e alinhar ao centro vertical
-      function textWidthWithSpacing(ctx, text, spacing){
-        let w = 0; for(let i=0;i<text.length;i++){ const ch = text[i]; w += ctx.measureText(ch).width; if(i < text.length-1) w += spacing; } return w;
-      }
-      function fillTextWithSpacing(ctx, text, x, y, spacing){
-        let dx = x; for(let i=0;i<text.length;i++){ const ch = text[i]; ctx.fillText(ch, dx, y); dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0); }
-      }
-      function baselineMiddle(y, h, metrics, fallbackFontSize){
-        if(metrics && metrics.actualBoundingBoxAscent !== undefined && metrics.actualBoundingBoxDescent !== undefined){
-          return y + (h + metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent)/2;
-        }
-        return y + h/2 + (fallbackFontSize*0.1); // fallback aproximado
-      }
-
-      // Definir fonte Bebas para medir
-      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      ctx.textBaseline = 'alphabetic';
-
-      // Largura do texto com espaçamento e geometria do box
-      const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
-      const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
-      const badgeH = BADGE_HEIGHT;
-
-      // Aumentar distância entre o box e a manchete para não sobrepor
-      // distância entre o box e o TOPO da primeira linha (não a baseline)
-      const gapPx = CONFIG.GAP_BETWEEN_BOX_AND_TEXT;
-      // medir a altura acima da baseline (ascent) da primeira linha
-      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * HL;
       const mHeadline = ctx.measureText(lines[0] || 'Ag');
-      const ascent = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined)
-        ? mHeadline.actualBoundingBoxAscent
-        : Math.round(HEADLINE_FONT_SIZE * 0.8); // fallback aproximado
-      // posicionar o box para que o seu fundo fique gapPx acima do topo visual do texto
-      const firstLineTopY = yFirstBaseline - ascent;
-      const badgeY = firstLineTopY - gapPx - badgeH;
+      const ascent = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined) ? mHeadline.actualBoundingBoxAscent : Math.round(HF * 0.8);
+      const firstLineTop = yFirstBaseline - ascent;
 
-      // Desenhar box
-      ctx.fillStyle = brand;
-      ctx.fillRect(0, badgeY, badgeW, badgeH);
+      // Badge metrics
+      const BF = CONFIG.BADGE_FONT_SIZE; const BH = CONFIG.BADGE_HEIGHT; const LS = CONFIG.BADGE_LETTER_SPACING;
+      ctx.font = `400 ${BF}px "Bebas Neue", Poppins, sans-serif`;
+      // measure width with letter-spacing
+      let tWidth = 0; for(let i=0;i<badgeText.length;i++){ tWidth += ctx.measureText(badgeText[i]).width; if(i<badgeText.length-1) tWidth += LS; }
+      const badgeW = Math.min(W, Math.max(120, tWidth + CONFIG.BADGE_LEFT_PADDING + CONFIG.BADGE_RIGHT_PADDING));
+      const badgeY = firstLineTop - CONFIG.GAP_BETWEEN_BOX_AND_TEXT - BH;
 
-      // Texto centralizado verticalmente dentro do box; respeita padding à esquerda (80px)
-      ctx.fillStyle = '#111';
-      // ⚠️ garantir que estamos medindo/desenhando com a fonte Bebas, não Roboto
-      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      const refMetrics = ctx.measureText('H');
-      const baselineY = Math.round(baselineMiddle(badgeY, badgeH, refMetrics, BADGE_FONT_SIZE) + OPTICAL_NUDGE_Y);
-      const textX = BADGE_LEFT_PADDING; // 80px da borda esquerda do box
-      fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
-
-      // === Desenhar a manchete (em branco), abaixo do box ===
-      ctx.fillStyle = '#fff';
-      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      let y = yFirstBaseline;
-      for(const ln of lines.slice(0,6)){
-        ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
-        y += Math.round(HEADLINE_FONT_SIZE * 1.24);
-      }
-
-      els.download.disabled = false;
+      return { W,H, lines, HL, yFirstBaseline, firstLineTop, ascent, badgeW, badgeY };
     }
 
-    els.render.addEventListener('click', render);
+    // ===== Live overlay positioning =====
+    function updateOverlay(){
+      const badgeText = normalizeBadge(els.badgeEdit.textContent);
+      const headline = els.headlineEdit.textContent || '';
+      const L = computeLayout(badgeText, headline);
+      const scale = canvas.getBoundingClientRect().width / canvas.width; // visual scale
 
-    els.download.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'arte-manchete.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      // badge styles
+      els.badgeEdit.style.left = `${0}px`;
+      els.badgeEdit.style.top = `${Math.round(L.badgeY * scale)}px`;
+      els.badgeEdit.style.height = `${Math.round(CONFIG.BADGE_HEIGHT * scale)}px`;
+      els.badgeEdit.style.width = `${Math.round(L.badgeW * scale)}px`;
+      els.badgeEdit.style.fontFamily = '"Bebas Neue", sans-serif';
+      els.badgeEdit.style.fontSize = `${CONFIG.BADGE_FONT_SIZE * scale}px`;
+      els.badgeEdit.style.lineHeight = `${CONFIG.BADGE_HEIGHT * scale}px`; // centra vertical
+      els.badgeEdit.style.letterSpacing = `${CONFIG.BADGE_LETTER_SPACING * scale}px`;
+      els.badgeEdit.style.paddingLeft = `${CONFIG.BADGE_LEFT_PADDING * scale}px`;
+      els.badgeEdit.style.paddingRight = `${CONFIG.BADGE_RIGHT_PADDING * scale}px`;
+
+      // headline styles
+      els.headlineEdit.style.left = `${Math.round(CONFIG.HEADLINE_LEFT_PADDING * scale)}px`;
+      els.headlineEdit.style.top = `${Math.round(L.firstLineTop * scale)}px`;
+      els.headlineEdit.style.width = `${Math.round((L.W - CONFIG.HEADLINE_LEFT_PADDING - CONFIG.HEADLINE_RIGHT_PADDING) * scale)}px`;
+      els.headlineEdit.style.fontFamily = 'Roboto, system-ui, sans-serif';
+      els.headlineEdit.style.fontSize = `${CONFIG.HEADLINE_FONT_SIZE * scale}px`;
+      els.headlineEdit.style.fontWeight = '700';
+      els.headlineEdit.style.fontStyle = 'italic';
+      els.headlineEdit.style.lineHeight = `${L.HL * scale}px`;
+    }
+
+    function normalizeBadge(v){ return (v||'').replace(/\s+/g,' ').trim().toUpperCase(); }
+
+    // ==== Renders ====
+    async function renderPreview(){
+      await ensureFonts();
+      const W=1080,H=1350; canvas.width=W; canvas.height=H; ctx.clearRect(0,0,W,H);
+      // bg
+      if(bgURL){ const bg = await loadImage(bgURL); if(bg) drawCover(bg,0,0,W,H); } else { ctx.fillStyle='#333'; ctx.fillRect(0,0,W,H); }
+      // overlay image
+      const ov = await loadImage(OVERLAY_SRC); if(ov) ctx.drawImage(ov,0,0,W,H);
+      // draw ONLY the yellow box (texts on HTML overlay)
+      const badgeText = normalizeBadge(els.badgeEdit.textContent);
+      const L = computeLayout(badgeText, els.headlineEdit.textContent || '');
+      ctx.fillStyle = '#FFD400'; ctx.fillRect(0, L.badgeY, L.badgeW, CONFIG.BADGE_HEIGHT);
+      els.download.disabled = false;
+      updateOverlay();
+    }
+
+    async function renderFinalAndDownload(){
+      await ensureFonts();
+      const W=1080,H=1350; canvas.width=W; canvas.height=H; ctx.clearRect(0,0,W,H);
+      // bg
+      if(bgURL){ const bg = await loadImage(bgURL); if(bg) drawCover(bg,0,0,W,H); } else { ctx.fillStyle='#333'; ctx.fillRect(0,0,W,H); }
+      // overlay
+      const ov = await loadImage(OVERLAY_SRC); if(ov) ctx.drawImage(ov,0,0,W,H);
+      // layout
+      const badgeText = normalizeBadge(els.badgeEdit.textContent);
+      const headline = els.headlineEdit.textContent || '';
+      const L = computeLayout(badgeText, headline);
+      // box
+      ctx.fillStyle = '#FFD400'; ctx.fillRect(0, L.badgeY, L.badgeW, CONFIG.BADGE_HEIGHT);
+      // badge text (Bebas)
+      ctx.fillStyle = '#111';
+      ctx.font = `400 ${CONFIG.BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
+      // manual letter-spacing
+      let x = CONFIG.BADGE_LEFT_PADDING; const ls = CONFIG.BADGE_LETTER_SPACING;
+      for(let i=0;i<badgeText.length;i++){ const ch = badgeText[i]; ctx.fillText(ch, x, L.badgeY + CONFIG.BADGE_HEIGHT/2 + CONFIG.BADGE_FONT_SIZE*0.1); x += ctx.measureText(ch).width + (i<badgeText.length-1?ls:0); }
+      // headline text (Roboto Bold Italic)
+      ctx.fillStyle = '#fff'; ctx.font = `700 italic ${CONFIG.HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      let y = L.yFirstBaseline; for(const ln of L.lines){ ctx.fillText(ln, CONFIG.HEADLINE_LEFT_PADDING, y); y += L.HL; }
+      // download
+      const link = document.createElement('a'); link.download = 'arte-manchete.png'; link.href = canvas.toDataURL('image/png'); link.click();
+      // restore preview
+      renderPreview();
+    }
+
+    // Sync between inputs and overlay
+    function syncFromInputs(){
+      els.badgeEdit.textContent = normalizeBadge(els.destaque.value || 'ALERTA');
+      els.headlineEdit.textContent = els.manchete.value || '';
+      renderPreview();
+    }
+
+    // Events
+    els.destaque.addEventListener('input', syncFromInputs);
+    els.manchete.addEventListener('input', syncFromInputs);
+
+    let typingTimer; function onType(){
+      clearTimeout(typingTimer); typingTimer = setTimeout(()=>{ renderPreview(); }, 60);
+    }
+    els.badgeEdit.addEventListener('input', ()=>{
+      // uppercase & single line
+      const v = normalizeBadge(els.badgeEdit.textContent);
+      if(els.badgeEdit.textContent !== v){ els.badgeEdit.textContent = v; const sel = window.getSelection(); sel.selectAllChildren(els.badgeEdit); sel.collapseToEnd(); }
+      els.destaque.value = v; onType();
     });
+    els.headlineEdit.addEventListener('input', ()=>{ els.manchete.value = els.headlineEdit.textContent; onType(); });
 
+    els.render.addEventListener('click', renderPreview);
+    els.download.addEventListener('click', renderFinalAndDownload);
     els.clear.addEventListener('click', ()=>{
-      els.destaque.value = 'ALERTA';
-      els.manchete.value = '';
-      els.upload.value = '';
-      bgURL = null; ctx.clearRect(0,0,canvas.width, canvas.height);
-      els.download.disabled = true;
+      els.destaque.value = 'ALERTA'; els.manchete.value = ''; els.upload.value = ''; bgURL = null;
+      els.badgeEdit.textContent = 'ALERTA'; els.headlineEdit.textContent = '';
+      renderPreview();
     });
+
+    // boot
+    (async()=>{ await ensureFonts(); syncFromInputs(); })();
   </script>
 </body>
 </html>
