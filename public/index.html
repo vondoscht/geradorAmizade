@@ -91,7 +91,7 @@
   button.primary{background:var(--brand); color:#151515; border-color:#d6b700}
   button:disabled{opacity:.5; cursor:not-allowed}
 
-  .counter{margin-top:6px; font-size:12px; color:#muted; display:flex; justify-content:flex-end}
+  .counter{margin-top:6px; font-size:12px; color:var(--muted); display:flex; justify-content:flex-end}
   .counter.over{color:#ff7676}
 
   .stage{
@@ -239,13 +239,18 @@
       return lines;
     }
 
-    function wrapWithNewlinesPreserved(text, maxWidth){
+    // Mantém quebras do usuário, mas remove linhas vazias (sem texto)
+    function wrapWithNewlinesNoBlank(text, maxWidth){
       const rawParas = (text ?? '').split(/\n/);
       const out = [];
       for(const p of rawParas){
-        if (p === '') { out.push(''); continue; }
-        const lines = wrapText(p, maxWidth);
-        out.push(...lines);
+        const trimmed = p.replace(/[\t\r ]+/g, ' ').trim();
+        if (!trimmed) continue; // ignora parágrafos vazios
+        const lines = wrapText(trimmed, maxWidth);
+        for (const ln of lines){
+          const t = ln.trim();
+          if (t) out.push(t);
+        }
       }
       return out;
     }
@@ -307,7 +312,7 @@
       // 3) Textos
       const brand = '#FFD400';
 
-      // Manchete (com ENTER preservado)
+      // Manchete (com ENTER preservado, sem linhas em branco)
       const headline = (els.manchete.value || '');
       const HEADLINE_FONT_SIZE = 64;
       const HEADLINE_LEFT_PADDING = 80;
@@ -318,10 +323,10 @@
       ctx.textBaseline = 'alphabetic';
 
       const maxTextW = W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING;
-      const wrappedAll = wrapWithNewlinesPreserved(headline, maxTextW);
-      const lines = wrappedAll.slice(0, 6);
+      const wrappedAll = wrapWithNewlinesNoBlank(headline, maxTextW);
+      const lines = wrappedAll.slice(0, 6); // nunca inclui linhas vazias
       const L = Math.max(1, lines.length);
-      const firstTextLine = lines.find(ln => ln && ln.trim() !== '') || 'Ag';
+      const firstTextLine = lines[0] || 'Ag';
       const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
       // Badge
@@ -360,12 +365,12 @@
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // Desenhar linhas (inclui linhas em branco)
+      // Desenhar linhas (sem linhas em branco)
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yFirstBaseline;
       for(const ln of lines){
-        if (ln !== '') ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
+        ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
         y += LINE_HEIGHT;
       }
 
