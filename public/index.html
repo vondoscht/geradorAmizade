@@ -42,40 +42,36 @@
     <section class="panel">
       <h2>Conteúdo</h2>
 
-      <!-- ORDEM solicitada -->
+      <!-- ORDEM: Foto de Fundo → Editoria → Manchete -->
       <label for="upload">Foto de fundo</label>
       <input id="upload" type="file" accept="image/*" />
 
-      <label for="destaque">Editoria (ex.: ALERTA)</label>
-      <input id="destaque" type="text" placeholder="ALERTA" value="ALERTA" />
+      <label for="destaque">Editoria</label>
+      <input id="destaque" type="text" placeholder="URGENTE" value="URGENTE" />
 
       <label for="manchete">Manchete</label>
       <textarea id="manchete" placeholder="Digite a manchete..."></textarea>
 
       <div class="btns">
         <button id="download" class="primary" disabled>Baixar imagem</button>
-        <button id="clear">Limpar</button>
       </div>
-      <p class="note">Tamanho fixo: <b>1080×1350</b>. A foto é ajustada em <em>cover</em> (corta o excesso para preencher).</p>
-      <p class="note">Coloque a sua overlay como <code>/public/overlay.png</code> (PNG transparente). Ela será aplicada acima da foto, e os textos acima dela.</p>
-      <p class="note">Pré-visualização é automática enquanto você digita ou troca a imagem.</p>
     </section>
 
     <section class="stage">
       <div class="canvas-wrap">
-        <canvas id="canvas" width="1080" height="1350" style="width: 420px; height: auto; max-width: 100%;"></canvas>
+        <canvas id="canvas" width="1080" height="1350" style="width: 420px; height: auto; max-width: 100%; touch-action: none;"></canvas>
       </div>
-      <div class="ghost">Pré-visualização do resultado (atualiza automaticamente).</div>
+      <div class="ghost">Dica: arraste para reposicionar a foto.</div>
     </section>
   </div>
 
   <script>
     // ===== Configuração rápida =====
     // BOTTOM_MARGIN: distância da ÚLTIMA linha de texto até a borda inferior
-    // GAP_BETWEEN_BOX_AND_TEXT:  distância do FUNDO do box amarelo até o TOPO visual da 1ª linha
+    // GAP_BETWEEN_BOX_AND_TEXT: distância do FUNDO do box amarelo até o TOPO visual da 1ª linha
     const CONFIG = {
       BOTTOM_MARGIN: 120,
-      GAP_BETWEEN_BOX_AND_TEXT: 16
+      GAP_BETWEEN_BOX_AND_TEXT: 36 // mantido como sua versão atual salva
     };
 
     const $ = (q) => document.querySelector(q);
@@ -107,23 +103,51 @@
     // Overlay fixa (arquivo em /public/overlay.png)
     const OVERLAY_SRC = 'overlay.png';
 
-    let bgURL = null; // apenas a foto muda
+    // ===== Estado da imagem de fundo + drag =====
+    let bgURL = null;
+    let bgImg = null; // Image()
+    const bgState = {
+      // dimensões escaladas para "cover"
+      dw: 0, dh: 0,
+      // posição atual (top-left) dentro do canvas lógico 1080x1350
+      x: 0, y: 0,
+      // limites para arrastar (x e y entre min e max)
+      minX: 0, maxX: 0,
+      minY: 0, maxY: 0
+    };
 
     function revokeBgURL(){
       if(bgURL){ URL.revokeObjectURL(bgURL); bgURL = null; }
     }
 
-    // ===== Helpers =====
-    function drawCover(img, x, y, w, h){
-      const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-      const ir = iw/ih, r = w/h;
-      let dw, dh, dx, dy;
-      if(ir > r){ dh = h; dw = dh*ir; dx = x + (w-dw)/2; dy = y; }
-      else { dw = w; dh = dw/ir; dx = x; dy = y + (h-dh)/2; }
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, dx, dy, dw, dh);
+    function computeCoverDims(img, W, H){
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      const scale = Math.max(W / iw, H / ih);
+      return { dw: Math.ceil(iw * scale), dh: Math.ceil(ih * scale) };
     }
 
+    function centerAndClampBg(W, H){
+      // centraliza inicialmente e calcula limites
+      if(!bgImg) return;
+      const { dw, dh } = computeCoverDims(bgImg, W, H);
+      bgState.dw = dw; bgState.dh = dh;
+
+      // posição central
+      bgState.x = Math.floor((W - dw) / 2);
+      bgState.y = Math.floor((H - dh) / 2);
+
+      // limites (se a imagem for menor/equal em algum eixo, trava no centro)
+      if (dw > W) { bgState.minX = W - dw; bgState.maxX = 0; }
+      else        { bgState.minX = bgState.maxX = bgState.x; }
+
+      if (dh > H) { bgState.minY = H - dh; bgState.maxY = 0; }
+      else        { bgState.minY = bgState.maxY = bgState.y; }
+    }
+
+    function clamp(val, min, max){ return Math.min(max, Math.max(min, val)); }
+
+    // ===== Helpers =====
     function wrapText(text, maxWidth){
       const words = (text||'').split(/\s+/); let line = '', lines=[];
       for(const w of words){
@@ -180,11 +204,14 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // escala tudo
       ctx.clearRect(0,0,W,H);
 
-      // 1) Fundo (cover/crop)
-      if(bgURL){
-        const bg = await loadImage(bgURL);
-        if(bg) drawCover(bg,0,0,W,H);
-        else { ctx.fillStyle = '#333'; ctx.fillRect(0,0,W,H); }
+      // 1) Fundo (cover com reposicionamento por drag)
+      if(bgImg){
+        // garante que temos dw/dh/limites coerentes (caso mude o DPR/zoom de página)
+        if(!bgState.dw || !bgState.dh){
+          centerAndClampBg(W, H);
+        }
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bgImg, bgState.x, bgState.y, bgState.dw, bgState.dh);
       } else {
         ctx.fillStyle = '#333'; ctx.fillRect(0,0,W,H);
         ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
@@ -248,21 +275,13 @@
       ctx.fillStyle = brand;
       ctx.fillRect(0, badgeY, badgeW, badgeH);
 
-      // Texto do badge: centralizado verticalmente com métricas REAIS do texto (considera acentos)
+      // Texto do badge: centralizado verticalmente pela métrica do "H" (como você pediu)
       ctx.fillStyle = '#111';
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-
-ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-ctx.textBaseline = 'alphabetic';
-
-const refMetrics = ctx.measureText('H');
-const ascent = refMetrics.actualBoundingBoxAscent ?? BADGE_FONT_SIZE * 0.8;
-const descent = refMetrics.actualBoundingBoxDescent ?? BADGE_FONT_SIZE * 0.2;
-
-const baselineY = Math.round(
-badgeY + (badgeH + ascent - descent) / 2 + OPTICAL_NUDGE_Y
-);
-      
+      const refMetrics = ctx.measureText('H');
+      const ascent  = refMetrics.actualBoundingBoxAscent ?? BADGE_FONT_SIZE * 0.8;
+      const descent = refMetrics.actualBoundingBoxDescent ?? BADGE_FONT_SIZE * 0.2;
+      const baselineY = Math.round(badgeY + (badgeH + ascent - descent)/2 + OPTICAL_NUDGE_Y);
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
@@ -279,7 +298,7 @@ badgeY + (badgeH + ascent - descent) / 2 + OPTICAL_NUDGE_Y
       els.download.disabled = false;
     }
 
-    // --- EVENTOS ---
+    // --- EVENTOS (inputs) ---
 
     // Preview automático digitando/mudando campos
     ['input','change'].forEach(evt => {
@@ -287,18 +306,19 @@ badgeY + (badgeH + ascent - descent) / 2 + OPTICAL_NUDGE_Y
       els.manchete.addEventListener(evt, render);
     });
 
-    // Alteração da foto: gera URL, renderiza quando carregar e limpa anterior
-    els.upload.addEventListener('change', () => {
+    // Alteração da foto: gera URL, cria Image, centraliza e renderiza
+    els.upload.addEventListener('change', async () => {
       if (els.upload.files && els.upload.files[0]) {
         revokeBgURL();
         bgURL = URL.createObjectURL(els.upload.files[0]);
-
-        const img = new Image();
-        img.onload = render;
-        img.onerror = render;
-        img.src = bgURL;
+        bgImg = await loadImage(bgURL);
+        if (bgImg){
+          centerAndClampBg(1080, 1350);
+        }
+        render();
       } else {
         revokeBgURL();
+        bgImg = null;
         render();
       }
     });
@@ -317,10 +337,60 @@ badgeY + (badgeH + ascent - descent) / 2 + OPTICAL_NUDGE_Y
       els.manchete.value = '';
       els.upload.value = '';
       revokeBgURL();
+      bgImg = null;
+      // zera estado
+      bgState.dw = bgState.dh = 0;
+      bgState.x = bgState.y = 0;
+      bgState.minX = bgState.maxX = 0;
+      bgState.minY = bgState.maxY = 0;
       ctx.clearRect(0,0,canvas.width, canvas.height);
       els.download.disabled = true;
-      render(); // mantém preview de placeholder
+      render(); // placeholder
     });
+
+    // --- DRAG (Pointer Events) ---
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let imgStart = { x: 0, y: 0 };
+
+    function toCanvasCoords(clientX, clientY){
+      // converte coordenada de tela para coordenada "lógica" 1080x1350
+      const rect = canvas.getBoundingClientRect();
+      const W = 1080, H = 1350;
+      const x = (clientX - rect.left) * (W / rect.width);
+      const y = (clientY - rect.top)  * (H / rect.height);
+      return { x, y };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      if(!bgImg) return;
+      canvas.setPointerCapture(e.pointerId);
+      isDragging = true;
+      const p = toCanvasCoords(e.clientX, e.clientY);
+      dragStart = p;
+      imgStart = { x: bgState.x, y: bgState.y };
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if(!isDragging || !bgImg) return;
+      const p = toCanvasCoords(e.clientX, e.clientY);
+      const dx = p.x - dragStart.x;
+      const dy = p.y - dragStart.y;
+      bgState.x = clamp(imgStart.x + dx, bgState.minX, bgState.maxX);
+      bgState.y = clamp(imgStart.y + dy, bgState.minY, bgState.maxY);
+      render();
+    });
+
+    function endDrag(e){
+      if(!isDragging) return;
+      isDragging = false;
+      if (e && e.pointerId) {
+        try { canvas.releasePointerCapture(e.pointerId); } catch(_) {}
+      }
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('pointerleave', endDrag);
 
     // Primeira render (placeholder)
     render();
