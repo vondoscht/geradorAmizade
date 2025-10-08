@@ -74,7 +74,7 @@
     // Altere aqui para ajustar espaçamentos sem mexer no resto do código
     const CONFIG = {
       BOTTOM_MARGIN: 80,              // distância da ÚLTIMA linha de texto até a borda inferior
-      GAP_BETWEEN_BOX_AND_TEXT: 40    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
+      GAP_BETWEEN_BOX_AND_TEXT: 16    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
     };
 
     const $ = (q) => document.querySelector(q);
@@ -234,12 +234,14 @@
 
       // Texto centralizado verticalmente dentro do box; respeita padding à esquerda (80px)
       ctx.fillStyle = '#111';
+      // ⚠️ garantir que estamos medindo/desenhando com a fonte Bebas, não Roboto
+      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
       const metrics = ctx.measureText(badgeText);
       const baselineY = Math.round(baselineMiddle(badgeY, badgeH, metrics, BADGE_FONT_SIZE));
       const textX = BADGE_LEFT_PADDING; // 80px da borda esquerda do box
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // === Desenhar a manchete (em branco), abaixo do box === (em branco), abaixo do box ===
+      // === Desenhar a manchete (em branco), abaixo do box ===
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yFirstBaseline;
