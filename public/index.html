@@ -52,23 +52,35 @@
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); border:0;
   }
-  .upload-btn{
-    display:flex; justify-content:center; align-items:center;
-    width:100%; height:56px;                 /* <- altura do botão */
-    background:linear-gradient(180deg,#171a22,#12151c);
-    color:#e7edf5; border:1px solid #2a2f39; border-radius:16px;
-    cursor:pointer; user-select:none;
-    transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
+.upload-btn{
+  display:flex;
+  align-items:center;        /* Centraliza verticalmente */
+  justify-content:center;    /* Centraliza horizontalmente */
 
-    /* texto */
-    font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
-    font-weight:700; font-size:18px;         /* <- tamanho da fonte */
-    line-height:1; letter-spacing:.2px; text-align:center; white-space:nowrap;
+  width:100%;
+  height:50px;               /* Altura do botão */
+  
+  background:linear-gradient(180deg,#171a22,#12151c);
+  color:#e7edf5;
+  border:1px solid #2a2f39;
+  border-radius:16px;
+  cursor:pointer;
+  user-select:none;
 
-    /* garante que não herdou nada estranho */
-    gap:0; flex-direction:row;
-    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-  }
+  transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
+
+  font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+  font-weight:700;
+  font-size:18px;
+  line-height:1;             /* Remove altura extra */
+  padding:0;                 /* Remove espaço interno que empurra o texto */
+
+  text-align:center;
+  letter-spacing:.2px;
+}
+
+
+  
   .upload-btn:hover{ border-color:#3a4150; background:#1a1e27 }
   .upload-btn:active{ transform:translateY(1px) }
   .upload-btn.is-dragover{
