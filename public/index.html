@@ -93,18 +93,18 @@
       <div class="field">
         <label for="destaque">Editoria</label>
         <div class="control">
-          <input id="destaque" class="input" type="text" placeholder="URGENTE" value="URGENTE" maxlength="24" />
+          <input id="destaque" class="input" type="text" placeholder="URGENTE" value="URGENTE" maxlength="20" />
         </div>
-        <div class="counter" id="destaqueCounter">0 / 24</div>
+        <div class="counter" id="destaqueCounter">0 / 20</div>
       </div>
 
       <!-- Manchete -->
       <div class="field">
         <label for="manchete">Manchete</label>
         <div class="control">
-          <textarea id="manchete" class="textarea" placeholder="Digite a manchete..." maxlength="240"></textarea>
+          <textarea id="manchete" class="textarea" placeholder="Digite a manchete..." maxlength="100"></textarea>
         </div>
-        <div class="counter" id="mancheteCounter">0 / 240</div>
+        <div class="counter" id="mancheteCounter">0 / 100</div>
       </div>
 
       <div class="btns">
@@ -127,7 +127,7 @@
       GAP_BETWEEN_BOX_AND_TEXT: 36
     };
 
-    const LIMITS = { destaque: 24, manchete: 240 };
+    const LIMITS = { destaque: 20, manchete: 100 };
 
     const $ = (q) => document.querySelector(q);
     const canvas = $('#canvas');
