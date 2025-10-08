@@ -72,6 +72,26 @@
     .credits a:hover{
       color:#c2c8d0; /* leve mudança, sem sublinhado */
     }
+    /* botão de upload: centraliza de verdade */
+.upload-btn{
+  display:inline-flex;
+  align-items:center;   /* alinha ícone e texto no centro vertical */
+  gap:10px;
+  line-height:1;        /* evita “folga” vertical do texto */
+}
+
+/* o SVG inline vem alinhado pela baseline; como block, ele centraliza certinho */
+.upload-btn svg{
+  display:block;        /* remove espaço da baseline */
+  width:18px;
+  height:18px;
+}
+
+/* opcional: toque fino se ainda parecer 1px fora do centro em alguns SOs */
+@supports (-webkit-touch-callout: none) or (font:-apple-system-body){
+  .upload-btn svg{ transform: translateY(0.5px); }  /* ajuste ótico leve no macOS */
+}
+
   </style>
 </head>
 <body>
