@@ -5,113 +5,121 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gerador de Arte • Rádio Amizade</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400;
-      --line:#23262d; --field:#0e1116; --ring:#2f5aff; --ring-alpha:0.35;
-      --upload-h: 50px; /* altura do botão de upload */
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; background:linear-gradient(180deg,#0d0f13,#0b0b0c);
-      color:var(--ink); font-family:"Roboto",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
-    }
-    header{padding:30px; display:flex; align-items:center; gap:12px}
-    header h1{font-size:24px; margin:0; font-weight:700; letter-spacing:.2px}
+<style>
+  :root{
+    --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400;
+    --line:#23262d; --field:#0e1116; --ring:#2f5aff; --ring-alpha:0.35;
+    --upload-h: 50px; /* altura do botão de upload */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:linear-gradient(180deg,#0d0f13,#0b0b0c);
+    color:var(--ink); font-family:"Roboto",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
+  }
+  header{padding:30px; display:flex; align-items:center; gap:12px}
+  header h1{font-size:24px; margin:0; font-weight:700; letter-spacing:.2px}
 
-    .app{display:grid; grid-template-columns:420px 1fr; gap:20px; padding:0 24px 24px}
-    @media (max-width: 980px){ .app{grid-template-columns:1fr} }
+  .app{display:grid; grid-template-columns:420px 1fr; gap:20px; padding:0 24px 24px}
+  @media (max-width: 980px){ .app{grid-template-columns:1fr} }
 
-    .panel{
-      background:var(--panel); border:1px solid var(--line); border-radius:18px;
-      padding:18px 16px; box-shadow:0 10px 30px rgba(0,0,0,.25)
-    }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:18px 16px; box-shadow:0 10px 30px rgba(0,0,0,.25)
+  }
+  .panel h2{
+    margin:4px 8px 14px; font-size:13px; color:var(--muted);
+    font-weight:700; text-transform:uppercase; letter-spacing:.14em
+  }
 
-    .field{margin:14px 8px}
-    .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:8px}
-    .control{position:relative}
+  .field{margin:14px 8px}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:8px}
+  .control{position:relative}
 
-    .input, .textarea{
-      width:100%; background:var(--field); color:var(--ink);
-      border:1px solid #2a2f39; border-radius:12px;
-      padding:14px 16px; font-size:15px; outline:none;
-      transition:box-shadow .15s, border-color .15s;
-    }
-    .textarea{min-height:120px; resize:vertical; line-height:1.45}
-    .input:focus, .textarea:focus, .upload-btn:focus-visible{
-      border-color:rgba(47,90,255,.6);
-      box-shadow:0 0 0 4px rgba(47,90,255,var(--ring-alpha));
-    }
+  .input, .textarea{
+    width:100%; background:var(--field); color:var(--ink);
+    border:1px solid #2a2f39; border-radius:12px;
+    padding:14px 16px; font-size:15px; outline:none;
+    transition:box-shadow .15s, border-color .15s;
+  }
+  .textarea{min-height:120px; resize:vertical; line-height:1.45}
+  .input:focus, .textarea:focus, .upload-btn:focus-visible{
+    border-color:rgba(47,90,255,.6);
+    box-shadow:0 0 0 4px rgba(47,90,255,var(--ring-alpha));
+  }
 
-    /* ===== Upload (input invisível sobre o botão) ===== */
-    .upload-wrap{
-      position:relative;
-      height:var(--upload-h);
-    }
-    .upload-input{
-      position:absolute; inset:0; width:100%; height:100%;
-      opacity:0; cursor:pointer; z-index:2;
-    }
-    .upload-btn{
-      position:absolute; inset:0; z-index:1;
-      display:flex; align-items:center; justify-content:center; /* centro perfeito */
-      height:100%; padding:0; line-height:1;
-      font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
-      font-weight:700; font-size:18px;
-      appearance:none; -webkit-appearance:none;
+  /* ===== Upload (refeito: input invisível sobre botão) ===== */
+  .upload-wrap{
+    position:relative;
+    height:var(--upload-h);
+  }
+  /* input ocupa toda a área e fica invisível, capturando o clique */
+  .upload-input{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    opacity:0; cursor:pointer;
+    z-index:2;
+  }
+  /* botão visual abaixo do input invisível */
+  .upload-btn{
+    position:absolute; inset:0;
+    display:grid; place-items:center;
+    background:linear-gradient(180deg,#171a22,#12151c);
+    color:#e7edf5;
+    border:1px solid #2a2f39;
+    border-radius:16px;
+    user-select:none;
+    transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
 
-      background:linear-gradient(180deg,#171a22,#12151c);
-      color:#e7edf5;
-      border:1px solid #2a2f39;
-      border-radius:16px;
-      user-select:none;
-      transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
-      text-align:center; white-space:nowrap;
-    }
-    .upload-btn:hover{ border-color:#3a4150; background:#1a1e27 }
-    .upload-btn:active{ transform:translateY(1px) }
-    .upload-btn.is-dragover{
-      border-color:var(--brand);
-      box-shadow:0 0 0 4px rgba(255,212,0,.25);
-    }
-    .upload-btn .hint{ font:inherit; line-height:inherit; margin:0 }
+    font-family:"Roboto",system-ui,-apple-system,Segoe UI,Arial,sans-serif;
+    font-weight:700; font-size:18px; line-height:1;
+    text-align:center; white-space:nowrap; padding:0;
+    z-index:1;  /* fica sob o input invisível */
+  }
+  .upload-btn:hover{ border-color:#3a4150; background:#1a1e27 }
+  .upload-btn:active{ transform:translateY(1px) }
+  .upload-btn.is-dragover{
+    border-color:var(--brand);
+    box-shadow:0 0 0 4px rgba(255,212,0,.25);
+  }
+  .upload-btn .hint{ font:inherit; line-height:inherit; margin:0; padding:0 }
 
-    .btns{display:flex; gap:12px; margin:16px 8px 4px; flex-wrap:wrap}
-    button{
-      background:#1f2937; color:#f7fbff; border:1px solid #2a2f39;
-      border-radius:12px; padding:14px 18px; font-weight:700; cursor:pointer; font-size:15px
-    }
-    button.primary{background:var(--brand); color:#151515; border-color:#d6b700}
-    button:disabled{opacity:.5; cursor:not-allowed}
+  .btns{display:flex; gap:12px; margin:16px 8px 4px; flex-wrap:wrap}
+  button{
+    background:#1f2937; color:#f7fbff; border:1px solid #2a2f39;
+    border-radius:12px; padding:14px 18px; font-weight:700; cursor:pointer; font-size:15px
+  }
+  button.primary{background:var(--brand); color:#151515; border-color:#d6b700}
+  button:disabled{opacity:.5; cursor:not-allowed}
 
-    .counter{margin-top:6px; font-size:12px; color:var(--muted); display:flex; justify-content:flex-end}
-    .counter.over{color:#ff7676}
+  .counter{margin-top:6px; font-size:12px; color:#muted; display:flex; justify-content:flex-end}
+  .counter.over{color:#ff7676}
 
-    .stage{
-      background:#0b0c0e; border:1px solid var(--line); border-radius:18px;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      padding:18px; gap:12px
-    }
-    .stage .canvas-wrap{position:relative; border-radius:14px; overflow:hidden; background:#111}
-    .ghost{font-size:13px; color:#9199a6}
+  .stage{
+    background:#0b0c0e; border:1px solid var(--line); border-radius:18px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:18px; gap:12px
+  }
+  .stage .canvas-wrap{position:relative; border-radius:14px; overflow:hidden; background:#111}
+  .ghost{font-size:13px; color:#9199a6}
 
-    /* Rodapé (sem sublinhado) */
-    .credits{
-      text-align:left; font-size:12px; color:#8892a0; padding:10px 30px;
-    }
-    .credits a{ color:#8892a0; text-decoration:none }
-    .credits a:hover{ color:#c2c8d0 }
-  </style>
+  /* Rodapé (sem sublinhado) */
+  .credits{
+    text-align:left; font-size:12px; color:#8892a0; padding:10px 30px;
+  }
+  .credits a{ color:#8892a0; text-decoration:none }
+  .credits a:hover{ color:#c2c8d0 }
+</style>
 </head>
 <body>
-  <header></header>
+  <header>
+  </header>
 
   <div class="app">
     <section class="panel">
       <!-- Upload -->
       <div class="field">
         <label for="upload">Imagem de fundo</label>
-        <div class="upload-wrap" id="dropZone">
+        <div class="upload-wrap">
           <input id="upload" class="upload-input" type="file" accept="image/*" />
           <button type="button" class="upload-btn" id="uploadBtn" aria-hidden="true">
             <span class="hint">Fazer upload da imagem</span>
@@ -119,7 +127,7 @@
         </div>
       </div>
 
-      <!-- Etiqueta -->
+      <!-- Editoria -->
       <div class="field">
         <label for="destaque">Etiqueta</label>
         <div class="control">
@@ -128,7 +136,7 @@
         <div class="counter" id="destaqueCounter">0 / 20</div>
       </div>
 
-      <!-- Manchete (quebra de linha permitida, mas NUNCA vazia) -->
+      <!-- Manchete (com ENTER) -->
       <div class="field">
         <label for="manchete">Manchete</label>
         <div class="control">
@@ -149,14 +157,15 @@
       <div class="ghost">Dica: arraste para reposicionar a foto.</div>
     </section>
   </div>
-
-  <footer class="credits">
-    Criado por <a href="https://vondoscht.com" target="_blank" rel="noopener">Gabriel Von Doscht</a>
-  </footer>
-
+ 
   <script>
     // ===== Configuração rápida =====
-    const CONFIG = { BOTTOM_MARGIN: 120, GAP_BETWEEN_BOX_AND_TEXT: 36 };
+    const CONFIG = {
+      BOTTOM_MARGIN: 120,
+      GAP_BETWEEN_BOX_AND_TEXT: 36
+    };
+
+    // Limites de caracteres
     const LIMITS = { destaque: 20, manchete: 100 };
 
     const $ = (q) => document.querySelector(q);
@@ -170,7 +179,6 @@
       mancheteCounter: $('#mancheteCounter'),
       upload:   $('#upload'),
       uploadBtn: $('#uploadBtn'),
-      dropZone: $('#dropZone'),
       download: $('#download')
     };
 
@@ -184,7 +192,7 @@
           document.fonts.load('700 italic 64px "Roboto"'),
           document.fonts.ready
         ]);
-      }catch(e){}
+      }catch(e){/* ignore */}
       fontsLoaded = true;
     }
 
@@ -231,12 +239,43 @@
       return lines;
     }
 
-    // Remove linhas vazias e quebra por largura
-    function wrapWithoutEmptyLines(text, maxWidth){
-      const raw = (text ?? '').split('\n').map(l => l.trim()).filter(Boolean);
+    function wrapWithNewlinesPreserved(text, maxWidth){
+      const rawParas = (text ?? '').split(/\n/);
       const out = [];
-      for(const p of raw){ out.push(...wrapText(p, maxWidth)); }
+      for(const p of rawParas){
+        if (p === '') { out.push(''); continue; }
+        const lines = wrapText(p, maxWidth);
+        out.push(...lines);
+      }
       return out;
+    }
+
+    function loadImage(url){
+      return new Promise((res)=>{ 
+        if(!url) return res(null); 
+        const img=new Image(); 
+        img.onload=()=>res(img); 
+        img.onerror=()=>res(null); 
+        img.src=url; 
+      });
+    }
+
+    function textWidthWithSpacing(ctx, text, spacing){
+      let w = 0; 
+      for(let i=0;i<text.length;i++){ 
+        const ch = text[i]; 
+        w += ctx.measureText(ch).width; 
+        if(i < text.length-1) w += spacing; 
+      } 
+      return w;
+    }
+    function fillTextWithSpacing(ctx, text, x, y, spacing){
+      let dx = x; 
+      for(let i=0;i<text.length;i++){ 
+        const ch = text[i]; 
+        ctx.fillText(ch, dx, y); 
+        dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0); 
+      }
     }
 
     // ===== Render =====
@@ -268,7 +307,7 @@
       // 3) Textos
       const brand = '#FFD400';
 
-      // Manchete (sem linhas vazias)
+      // Manchete (com ENTER preservado)
       const headline = (els.manchete.value || '');
       const HEADLINE_FONT_SIZE = 64;
       const HEADLINE_LEFT_PADDING = 80;
@@ -279,9 +318,10 @@
       ctx.textBaseline = 'alphabetic';
 
       const maxTextW = W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING;
-      const lines = wrapWithoutEmptyLines(headline, maxTextW).slice(0, 6);
+      const wrappedAll = wrapWithNewlinesPreserved(headline, maxTextW);
+      const lines = wrappedAll.slice(0, 6);
       const L = Math.max(1, lines.length);
-      const firstTextLine = lines[0] || 'Ag';
+      const firstTextLine = lines.find(ln => ln && ln.trim() !== '') || 'Ag';
       const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
       // Badge
@@ -320,12 +360,12 @@
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // Desenhar linhas (já sem vazias)
+      // Desenhar linhas (inclui linhas em branco)
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yFirstBaseline;
       for(const ln of lines){
-        ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
+        if (ln !== '') ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
         y += LINE_HEIGHT;
       }
 
@@ -354,27 +394,13 @@
       scheduleRender();
     }
 
-    // ===== Sanitização da manchete (remove linhas vazias) =====
-    function sanitizeHeadlineValue(){
-      const lines = els.manchete.value
-        .split('\n')
-        .map(l => l.trim())
-        .filter(Boolean);          // remove vazias
-      els.manchete.value = lines.join('\n');
-    }
-
     // Inicializa contadores
     updateCounter(els.destaque, els.destaqueCounter, LIMITS.destaque);
     updateCounter(els.manchete, els.mancheteCounter, LIMITS.manchete);
 
     // Listeners de texto
-    els.destaque.addEventListener('input', () =>
-      handleLimitedInput(els.destaque, els.destaqueCounter, LIMITS.destaque)
-    );
-    els.manchete.addEventListener('input', () => {
-      sanitizeHeadlineValue(); // impede linhas vazias na origem
-      handleLimitedInput(els.manchete, els.mancheteCounter, LIMITS.manchete);
-    });
+    els.destaque.addEventListener('input', () => handleLimitedInput(els.destaque, els.destaqueCounter, LIMITS.destaque));
+    els.manchete.addEventListener('input', () => handleLimitedInput(els.manchete, els.mancheteCounter, LIMITS.manchete));
 
     // ===== Upload da foto (click/select) =====
     els.upload.addEventListener('change', async () => {
@@ -394,21 +420,23 @@
 
     // ===== Drag-over highlight + drop-to-upload =====
     ['dragenter','dragover'].forEach(evt=>{
-      els.dropZone.addEventListener(evt, e=>{
+      els.uploadBtn.addEventListener(evt, e=>{
         e.preventDefault(); e.stopPropagation();
         els.uploadBtn.classList.add('is-dragover');
       });
     });
-    ['dragleave','dragend','drop'].forEach(evt=>{
-      els.dropZone.addEventListener(evt, e=>{
+    ['dragleave','dragend'].forEach(evt=>{
+      els.uploadBtn.addEventListener(evt, e=>{
         e.preventDefault(); e.stopPropagation();
         els.uploadBtn.classList.remove('is-dragover');
       });
     });
-    els.dropZone.addEventListener('drop', async (e)=>{
+    els.uploadBtn.addEventListener('drop', async (e)=>{
       e.preventDefault(); e.stopPropagation();
-      const file = e.dataTransfer?.files?.[0];
-      if (!file || !file.type?.startsWith('image/')) return;
+      els.uploadBtn.classList.remove('is-dragover');
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      if (!file.type || !file.type.startsWith('image/')) return;
 
       revokeBgURL();
       bgURL = URL.createObjectURL(file);
