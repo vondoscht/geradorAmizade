@@ -74,7 +74,7 @@
     // Altere aqui para ajustar espaçamentos sem mexer no resto do código
     const CONFIG = {
       BOTTOM_MARGIN: 120,              // distância da ÚLTIMA linha de texto até a borda inferior
-      GAP_BETWEEN_BOX_AND_TEXT: 120    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
+      GAP_BETWEEN_BOX_AND_TEXT: 60    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
     };
 
     const $ = (q) => document.querySelector(q);
@@ -190,7 +190,7 @@
       const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
       const BADGE_LETTER_SPACING = 2;          // espaçamento entre letras (px)
       const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
-      const BADGE_RIGHT_PADDING = 10;          // padding à direita do texto
+      const BADGE_RIGHT_PADDING = 20;          // padding à direita do texto
 
       // Helpers para medir/desenhar com letter-spacing e alinhar ao centro vertical
       function textWidthWithSpacing(ctx, text, spacing){
