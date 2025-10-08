@@ -19,8 +19,6 @@
     input[type="text"], textarea{width:100%;border:1px solid #2a2f39;background:#0e1116;color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
     input[type="file"]{width:100%}
     textarea{min-height:110px;resize:vertical}
-    .row{display:flex;gap:10px;align-items:center}
-    .row > *{flex:1}
     .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
     button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
     button.primary{background:var(--brand);color:#151515;border-color:#d6b700}
@@ -28,8 +26,6 @@
     .stage{background:#0b0c0e;border:1px solid #23262d;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}
     .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
     .ghost{font-size:13px;color:#9199a6}
-    .note{font-size:12px;color:#8892a0}
-    code{background:#0e1116;border:1px solid #2a2f39;border-radius:6px;padding:2px 6px}
   </style>
 </head>
 <body>
@@ -59,7 +55,7 @@
 
     <section class="stage">
       <div class="canvas-wrap">
-        <canvas id="canvas" width="1080" height="1350" style="width: 420px; height: auto; max-width: 100%; touch-action: none;"></canvas>
+        <canvas id="canvas" width="1080" height="1350" style="width:420px;height:auto;max-width:100%;touch-action:none;cursor:grab;"></canvas>
       </div>
       <div class="ghost">Dica: arraste para reposicionar a foto.</div>
     </section>
@@ -67,57 +63,52 @@
 
   <script>
     // ===== Configuração rápida =====
-    // BOTTOM_MARGIN: distância da ÚLTIMA linha de texto até a borda inferior
-    // GAP_BETWEEN_BOX_AND_TEXT: distância do FUNDO do box amarelo até o TOPO visual da 1ª linha
     const CONFIG = {
       BOTTOM_MARGIN: 120,
-      GAP_BETWEEN_BOX_AND_TEXT: 36 // mantido como sua versão atual salva
+      GAP_BETWEEN_BOX_AND_TEXT: 36
     };
 
     const $ = (q) => document.querySelector(q);
     const canvas = $('#canvas');
-    let ctx = canvas.getContext('2d'); // será escalado por DPR em cada render
+    let ctx = canvas.getContext('2d'); // será reatribuído após DPR a cada render
 
     const els = {
       destaque: $('#destaque'),
       manchete: $('#manchete'),
       upload:   $('#upload'),
-      download: $('#download'),
-      clear:    $('#clear')
+      download: $('#download')
     };
 
-    // --- Garantir que as fontes carregaram antes de desenhar no Canvas ---
+    // --- Fontes ---
     let fontsLoaded = false;
     async function ensureFonts(){
-      if(fontsLoaded) return;
+      if (fontsLoaded) return;
       try{
         await Promise.all([
           document.fonts.load('400 64px "Bebas Neue"'),
           document.fonts.load('700 italic 64px "Roboto"'),
           document.fonts.ready
         ]);
-      }catch(e){ /* ignore */ }
+      }catch(e){/* ignore */}
       fontsLoaded = true;
     }
 
-    // Overlay fixa (arquivo em /public/overlay.png)
+    // --- Overlay (pré-carregada 1x para evitar "piscar") ---
     const OVERLAY_SRC = 'overlay.png';
+    let overlayImg = null;
 
     // ===== Estado da imagem de fundo + drag =====
     let bgURL = null;
     let bgImg = null; // Image()
     const bgState = {
-      // dimensões escaladas para "cover"
-      dw: 0, dh: 0,
-      // posição atual (top-left) dentro do canvas lógico 1080x1350
-      x: 0, y: 0,
-      // limites para arrastar (x e y entre min e max)
+      dw: 0, dh: 0,  // tamanho desenhado (cover)
+      x: 0,  y: 0,   // posição atual (top-left) no canvas lógico
       minX: 0, maxX: 0,
       minY: 0, maxY: 0
     };
 
     function revokeBgURL(){
-      if(bgURL){ URL.revokeObjectURL(bgURL); bgURL = null; }
+      if (bgURL){ URL.revokeObjectURL(bgURL); bgURL = null; }
     }
 
     function computeCoverDims(img, W, H){
@@ -128,16 +119,15 @@
     }
 
     function centerAndClampBg(W, H){
-      // centraliza inicialmente e calcula limites
       if(!bgImg) return;
       const { dw, dh } = computeCoverDims(bgImg, W, H);
       bgState.dw = dw; bgState.dh = dh;
 
-      // posição central
+      // centraliza
       bgState.x = Math.floor((W - dw) / 2);
       bgState.y = Math.floor((H - dh) / 2);
 
-      // limites (se a imagem for menor/equal em algum eixo, trava no centro)
+      // limites de arrasto
       if (dw > W) { bgState.minX = W - dw; bgState.maxX = 0; }
       else        { bgState.minX = bgState.maxX = bgState.x; }
 
@@ -147,7 +137,7 @@
 
     function clamp(val, min, max){ return Math.min(max, Math.max(min, val)); }
 
-    // ===== Helpers =====
+    // ===== Helpers genéricos =====
     function wrapText(text, maxWidth){
       const words = (text||'').split(/\s+/); let line = '', lines=[];
       for(const w of words){
@@ -189,6 +179,7 @@
       }
     }
 
+    // ===== Render (com DPR e sem "piscar") =====
     async function render(){
       await ensureFonts();
 
@@ -204,9 +195,8 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // escala tudo
       ctx.clearRect(0,0,W,H);
 
-      // 1) Fundo (cover com reposicionamento por drag)
+      // 1) Fundo (cover + drag)
       if(bgImg){
-        // garante que temos dw/dh/limites coerentes (caso mude o DPR/zoom de página)
         if(!bgState.dw || !bgState.dh){
           centerAndClampBg(W, H);
         }
@@ -217,18 +207,17 @@
         ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
       }
 
-      // 2) Overlay fixa
-      const ov = await loadImage(OVERLAY_SRC);
-      if(ov) ctx.drawImage(ov, 0, 0, W, H);
+      // 2) Overlay (já carregada em memória)
+      if (overlayImg) ctx.drawImage(overlayImg, 0, 0, W, H);
 
       // 3) Textos
       const brand = '#FFD400';
 
-      // === Manchete: preparar medidas primeiro ===
+      // Manchete
       const headline = (els.manchete.value || '');
-      const HEADLINE_FONT_SIZE = 64; // px
-      const HEADLINE_LEFT_PADDING = 80; // px
-      const HEADLINE_RIGHT_PADDING = 80; // px
+      const HEADLINE_FONT_SIZE = 64;
+      const HEADLINE_LEFT_PADDING = 80;
+      const HEADLINE_RIGHT_PADDING = 80;
       const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE * 1.24);
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
@@ -238,30 +227,25 @@
       const lines = allLines.slice(0, 6);
       const L = Math.max(1, lines.length);
 
-      // âncora do bloco pela base: última linha a BOTTOM_MARGIN px da margem inferior
       const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
-      // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
+      // Badge (box amarelo)
       let badgeText = (els.destaque.value || '').toUpperCase().normalize('NFC');
-
-      // Configurações do badge
-      const BADGE_FONT_SIZE = 64;              // px (Bebas)
-      const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
-      const BADGE_LETTER_SPACING = 4;          // espaçamento entre letras (px)
-      const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
+      const BADGE_FONT_SIZE = 64;
+      const BADGE_HEIGHT = 80;
+      const BADGE_LETTER_SPACING = 4;
+      const BADGE_LEFT_PADDING = 80;
       const BADGE_RIGHT_PADDING = 20;
-      const OPTICAL_NUDGE_Y = 0;               // ajuste fino vertical (px)
+      const OPTICAL_NUDGE_Y = 0;
 
-      // Definir fonte Bebas para medir
+      // geometria do box
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
       ctx.textBaseline = 'alphabetic';
-
-      // Largura do texto com espaçamento e geometria do box
       const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
       const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
       const badgeH = BADGE_HEIGHT;
 
-      // distância entre o box e o TOPO da primeira linha (não a baseline)
+      // posição vertical do box a partir do topo visual da primeira linha
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       const mHeadline = ctx.measureText(lines[0] || 'Ag');
       const ascentHeadline = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined)
@@ -271,11 +255,11 @@
       const firstLineTopY = yFirstBaseline - ascentHeadline;
       const badgeY = firstLineTopY - CONFIG.GAP_BETWEEN_BOX_AND_TEXT - badgeH;
 
-      // Desenhar box amarelo
+      // desenha box
       ctx.fillStyle = brand;
       ctx.fillRect(0, badgeY, badgeW, badgeH);
 
-      // Texto do badge: centralizado verticalmente pela métrica do "H" (como você pediu)
+      // texto do badge (centrado verticalmente pela métrica do "H")
       ctx.fillStyle = '#111';
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
       const refMetrics = ctx.measureText('H');
@@ -285,7 +269,7 @@
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // === Desenhar a manchete (em branco), abaixo do box ===
+      // manchete (linhas)
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yFirstBaseline;
@@ -294,19 +278,23 @@
         y += LINE_HEIGHT;
       }
 
-      // Habilita download quando houver algo renderizado
+      // habilita download
       els.download.disabled = false;
     }
 
-    // --- EVENTOS (inputs) ---
+    // ===== Preview automático com RAF (suave) =====
+    let rafId = 0;
+    function scheduleRender(){
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => { rafId = 0; render(); });
+    }
 
-    // Preview automático digitando/mudando campos
     ['input','change'].forEach(evt => {
-      els.destaque.addEventListener(evt, render);
-      els.manchete.addEventListener(evt, render);
+      els.destaque.addEventListener(evt, scheduleRender);
+      els.manchete.addEventListener(evt, scheduleRender);
     });
 
-    // Alteração da foto: gera URL, cria Image, centraliza e renderiza
+    // ===== Upload da foto =====
     els.upload.addEventListener('change', async () => {
       if (els.upload.files && els.upload.files[0]) {
         revokeBgURL();
@@ -315,15 +303,15 @@
         if (bgImg){
           centerAndClampBg(1080, 1350);
         }
-        render();
+        scheduleRender();
       } else {
         revokeBgURL();
         bgImg = null;
-        render();
+        scheduleRender();
       }
     });
 
-    // Download apenas salva o canvas atual
+    // ===== Download =====
     els.download.addEventListener('click', () => {
       const link = document.createElement('a');
       link.download = 'arte-manchete.png';
@@ -331,30 +319,12 @@
       link.click();
     });
 
-    // Limpar
-    els.clear.addEventListener('click', ()=>{
-      els.destaque.value = 'ALERTA';
-      els.manchete.value = '';
-      els.upload.value = '';
-      revokeBgURL();
-      bgImg = null;
-      // zera estado
-      bgState.dw = bgState.dh = 0;
-      bgState.x = bgState.y = 0;
-      bgState.minX = bgState.maxX = 0;
-      bgState.minY = bgState.maxY = 0;
-      ctx.clearRect(0,0,canvas.width, canvas.height);
-      els.download.disabled = true;
-      render(); // placeholder
-    });
-
-    // --- DRAG (Pointer Events) ---
+    // ===== Drag (Pointer Events) =====
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
     let imgStart = { x: 0, y: 0 };
 
     function toCanvasCoords(clientX, clientY){
-      // converte coordenada de tela para coordenada "lógica" 1080x1350
       const rect = canvas.getBoundingClientRect();
       const W = 1080, H = 1350;
       const x = (clientX - rect.left) * (W / rect.width);
@@ -366,6 +336,7 @@
       if(!bgImg) return;
       canvas.setPointerCapture(e.pointerId);
       isDragging = true;
+      canvas.style.cursor = 'grabbing';
       const p = toCanvasCoords(e.clientX, e.clientY);
       dragStart = p;
       imgStart = { x: bgState.x, y: bgState.y };
@@ -378,12 +349,13 @@
       const dy = p.y - dragStart.y;
       bgState.x = clamp(imgStart.x + dx, bgState.minX, bgState.maxX);
       bgState.y = clamp(imgStart.y + dy, bgState.minY, bgState.maxY);
-      render();
+      scheduleRender();
     });
 
     function endDrag(e){
       if(!isDragging) return;
       isDragging = false;
+      canvas.style.cursor = 'grab';
       if (e && e.pointerId) {
         try { canvas.releasePointerCapture(e.pointerId); } catch(_) {}
       }
@@ -392,8 +364,11 @@
     canvas.addEventListener('pointercancel', endDrag);
     canvas.addEventListener('pointerleave', endDrag);
 
-    // Primeira render (placeholder)
-    render();
+    // ===== Boot: carrega overlay e faz primeira render =====
+    (async function boot(){
+      overlayImg = await loadImage(OVERLAY_SRC);
+      scheduleRender(); // primeira render (sem piscar)
+    })();
   </script>
 </body>
 </html>
