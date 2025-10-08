@@ -37,11 +37,29 @@
     .upload-wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .upload-input{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0}
     .upload-btn{
-      display:inline-flex; align-items:center; gap:10px;
-      background:#171a22; color:#f7fbff; border:1px solid #2a2f39;
-      border-radius:12px; padding:16px 32px; font-weight:600; cursor:pointer;
-      transition:transform .06s ease, box-shadow .15s ease, border-color .15s; user-select:none;
-    }
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  padding:14px 16px;
+  background:#171a22;
+  color:#f7fbff;
+  border:1px solid #2a2f39;
+  border-radius:12px;
+  font-weight:600;
+  font-size:15px;
+  cursor:pointer;
+  transition:transform .06s ease, box-shadow .15s ease, border-color .15s;
+  user-select:none;
+}
+
+.upload-btn svg{
+  display:block;
+  width:18px;
+  height:18px;
+  margin-right:8px;
+}
+
     .upload-btn:hover{border-color:#3a4150}
     .upload-btn:active{transform:translateY(1px)}
     .file-name{font-size:12px; color:var(--muted)}
@@ -110,7 +128,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="#eaeaea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Carregar imagem
           </label>
-          <span class="file-name" id="fileName">Nenhum arquivo selecionado</span>
         </div>
       </div>
 
