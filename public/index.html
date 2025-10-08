@@ -251,10 +251,18 @@
       // Texto do badge: centralizado verticalmente com métricas REAIS do texto (considera acentos)
       ctx.fillStyle = '#111';
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      const badgeMetrics = ctx.measureText(badgeText);
-      const ascent  = badgeMetrics.actualBoundingBoxAscent ?? BADGE_FONT_SIZE * 0.8;
-      const descent = badgeMetrics.actualBoundingBoxDescent ?? BADGE_FONT_SIZE * 0.2;
-      const baselineY = Math.round(badgeY + (badgeH + ascent - descent)/2 + OPTICAL_NUDGE_Y);
+
+ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
+ctx.textBaseline = 'alphabetic';
+
+const refMetrics = ctx.measureText('H');
+const ascent = refMetrics.actualBoundingBoxAscent ?? BADGE_FONT_SIZE * 0.8;
+const descent = refMetrics.actualBoundingBoxDescent ?? BADGE_FONT_SIZE * 0.2;
+
+const baselineY = Math.round(
+badgeY + (badgeH + ascent - descent) / 2 + OPTICAL_NUDGE_Y
+);
+      
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
