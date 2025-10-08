@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gerador de Arte — Editoria + Manchete (Overlay fixa)</title>
+  <title>Gerador de Arte — Alerta + Manchete (Overlay fixa)</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
@@ -18,12 +18,14 @@
     label{display:block;font-size:12px;color:var(--muted);margin:10px 6px 6px}
     input[type="text"], textarea{width:100%;border:1px solid #2a2f39;background:#0e1116;color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
     textarea{min-height:110px;resize:vertical}
-    .row{display:block}
-    .btns{display:flex;gap:10px;margin-top:14px}
-    button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .row{display:flex;gap:10px;align-items:center}
+    .row > *{flex:1}
+    .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
     button.primary{background:var(--brand);color:#151515;border-color:#d6b700}
+    button:disabled{opacity:.5;cursor:not-allowed}
     .stage{background:#0b0c0e;border:1px solid #23262d;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}
-    .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111;cursor:grab}
+    .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
     .ghost{font-size:13px;color:#9199a6}
     .note{font-size:12px;color:#8892a0}
   </style>
@@ -31,43 +33,48 @@
 <body>
   <header>
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" stroke="#ffd400" stroke-width="2"/><path d="M12 6.5V13M12 17.5h.01" stroke="#ffd400" stroke-width="2" stroke-linecap="round"/></svg>
-    <h1>Gerador de Arte — Editoria + Manchete (Overlay fixa)</h1>
+    <h1>Gerador de Arte — Alerta + Manchete (Overlay fixa)</h1>
   </header>
 
   <div class="app">
     <section class="panel">
       <h2>Conteúdo</h2>
+      <label for="destaque">Texto do alerta (ex.: ALERTA)</label>
+      <input id="destaque" type="text" placeholder="ALERTA" value="ALERTA" />
 
-      <!-- 1) Foto de Fundo -->
-      <label for="upload">1. Foto de Fundo</label>
-      <input id="upload" type="file" accept="image/*" />
+      <label for="manchete">Manchete</label>
+      <textarea id="manchete" placeholder="Digite a manchete..."></textarea>
 
-      <!-- 2) Editoria -->
-      <label for="destaque">2. Editoria</label>
-      <input id="destaque" type="text" placeholder="URGENTE" value="URGENTE" />
-
-      <!-- 3) Manchete -->
-      <label for="manchete">3. Manchete</label>
-      <textarea id="manchete" placeholder="Manchete" value="URGENTE" ></textarea>
+      <div class="row">
+        <div>
+          <label for="upload">Foto de fundo</label>
+          <input id="upload" type="file" accept="image/*" />
+        </div>
+      </div>
 
       <div class="btns">
-        <button id="downloadBtn" class="primary">Baixar Imagem</button>
+        <button id="render" class="primary">Gerar imagem</button>
+        <button id="download" disabled>Baixar PNG</button>
+        <button id="clear">Limpar</button>
       </div>
+      <p class="note">Tamanho fixo: <b>1080×1350</b>. A foto é ajustada em <em>cover</em> (corta o excesso para preencher).</p>
+      <p class="note">Coloque a sua overlay como <code>/public/overlay.png</code> (PNG transparente). Ela será aplicada acima da foto, e os textos acima dela.</p>
     </section>
 
     <section class="stage">
       <div class="canvas-wrap">
         <canvas id="canvas" width="1080" height="1350" style="width: 420px; height: auto; max-width: 100%;"></canvas>
       </div>
-      <div class="ghost">Dica: arraste a foto (↔) para reposicionar quando for mais larga.</div>
+      <div class="ghost">Pré-visualização do resultado (clique em “Gerar imagem”).</div>
     </section>
   </div>
 
   <script>
-    // ===== Config rápida =====
+    // ===== Configuração rápida =====
+    // Altere aqui para ajustar espaçamentos sem mexer no resto do código
     const CONFIG = {
-      BOTTOM_MARGIN: 120,               // distância da ÚLTIMA linha até a borda inferior
-      GAP_BETWEEN_BOX_AND_TEXT: 40     // distância entre fundo do box e TOPO da 1ª linha
+      BOTTOM_MARGIN: 120,              // distância da ÚLTIMA linha de texto até a borda inferior
+      GAP_BETWEEN_BOX_AND_TEXT: 36    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
     };
 
     const $ = (q) => document.querySelector(q);
@@ -78,82 +85,49 @@
       destaque: $('#destaque'),
       manchete: $('#manchete'),
       upload:   $('#upload'),
-      downloadBtn: $('#downloadBtn')
+      render:   $('#render'),
+      download: $('#download'),
+      clear:    $('#clear')
     };
 
-    // Garantir fontes antes de desenhar
+    // --- Garantir que as fontes carregaram antes de desenhar no Canvas ---
     let fontsLoaded = false;
     async function ensureFonts(){
       if(fontsLoaded) return;
       try{
-        const loads = [];
-        if(document.fonts && document.fonts.load){
-          loads.push(document.fonts.load('400 64px "Bebas Neue"'));
-          loads.push(document.fonts.load('700 italic 64px "Roboto"'));
-          loads.push(document.fonts.ready);
-        }
-        await Promise.race([
-          Promise.all(loads),
-          new Promise(res => setTimeout(res, 900)) // fallback: segue em ~0.9s mesmo se fontes demorarem
+        await Promise.all([
+          document.fonts.load('400 64px "Bebas Neue"'),
+          document.fonts.load('700 italic 64px "Roboto"')
         ]);
-      }catch(e){ /* segue com fallback */ }
+        await document.fonts.ready;
+      }catch(e){ /* ignore */ }
       fontsLoaded = true;
     }
 
-    // Preview em tempo real (debounce leve)
-    function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-    const queueRender = debounce(()=>requestAnimationFrame(render), 60);
-    ['input','change'].forEach(ev=>{
-      els.destaque.addEventListener(ev, queueRender);
-      els.manchete.addEventListener(ev, queueRender);
-      els.upload.addEventListener(ev, queueRender);
-    });
-    window.addEventListener('load', queueRender);
-
-    // Overlay fixa
+    // Overlay fixa (arquivo em /public/overlay.png)
     const OVERLAY_SRC = 'overlay.png';
-// Pré-carrega overlay (evita tela preta entre frames)
-let ovImg=null; (function preloadOverlay(){ const img=new Image(); img.onload=()=>{ ovImg=img; render(); }; img.src=OVERLAY_SRC; })();
 
-// Troca/Carrega a foto de fundo apenas uma vez e faz cache (para arrastar sem piscar)
-function setBg(file){
-  panX = 0;
-  if(bgURL) URL.revokeObjectURL(bgURL);
-  if(!file){ bgURL=null; bgImg=null; render(); return; }
-  bgURL = URL.createObjectURL(file);
-  bgLoading = true;
-  loadImage(bgURL).then(img=>{ bgImg = img; bgLoading = false; render(); });
-}
+    let bgURL = null; // apenas a foto muda
 
-    // Fundo e pan horizontal
-    let bgURL=null, bgImg=null, bgLoading=false; let panX=0, panLimit=0;
-    const wrapEl = document.querySelector('.canvas-wrap');
+    els.upload.addEventListener('change', () => {
+      if(els.upload.files && els.upload.files[0]){
+        bgURL = URL.createObjectURL(els.upload.files[0]);
+      } else bgURL = null;
+    });
 
-    els.upload.addEventListener('change', ()=>{ setBg(els.upload.files && els.upload.files[0]); });
-
-    function getScale(){ const r = canvas.getBoundingClientRect(); return r.width / canvas.width; }
-    const drag = { active:false, startX:0, startPan:0, scale:1 };
-    canvas.addEventListener('mousedown', (e)=>{ if(!bgURL) return; drag.active=true; drag.startX=e.clientX; drag.scale=getScale(); drag.startPan=panX; wrapEl.style.cursor='grabbing'; });
-    window.addEventListener('mousemove', (e)=>{ if(!drag.active) return; const dx=(e.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); queueRender(); });
-    window.addEventListener('mouseup', ()=>{ if(!drag.active) return; drag.active=false; wrapEl.style.cursor='grab'; });
-    canvas.addEventListener('touchstart', (e)=>{ if(!bgURL) return; const t=e.touches[0]; drag.active=true; drag.startX=t.clientX; drag.scale=getScale(); drag.startPan=panX; wrapEl.style.cursor='grabbing'; e.preventDefault(); }, {passive:false});
-    window.addEventListener('touchmove', (e)=>{ if(!drag.active) return; const t=e.touches[0]; const dx=(t.clientX-drag.startX)/drag.scale; panX=Math.max(-panLimit, Math.min(drag.startPan+dx, panLimit)); queueRender(); e.preventDefault(); }, {passive:false}); }, {passive:false});
-    window.addEventListener('touchend', ()=>{ if(!drag.active) return; drag.active=false; wrapEl.style.cursor='grab'; });
-
-    // Helpers
+    // ===== Helpers =====
     function drawCover(img, x, y, w, h){
-      const iw = img.width, ih = img.height; const ir = iw/ih, r = w/h;
+      const iw = img.width, ih = img.height;
+      const ir = iw/ih, r = w/h;
       let dw, dh, dx, dy;
-      if(ir > r){ dh = h; dw = dh*ir; const overflow = dw - w; panLimit = Math.max(0, overflow/2); const cp = Math.max(-panLimit, Math.min(panX, panLimit)); dx = x + (w-dw)/2 + cp; dy = y; }
-      else { dw = w; dh = dw/ir; panLimit = 0; dx = x; dy = y + (h-dh)/2; }
+      if(ir > r){ dh = h; dw = dh*ir; dx = x + (w-dw)/2; dy = y; }
+      else { dw = w; dh = dw/ir; dx = x; dy = y + (h-dh)/2; }
       ctx.drawImage(img, dx, dy, dw, dh);
     }
+
     function wrapText(text, maxWidth){
-      const sanitized = (text||'').replace(/
-/g,' ');
-      const parts = sanitized.split(' ');
-      let line = '', lines=[];
-      for(const w of parts){
+      const words = (text||'').split(/\s+/); let line = '', lines=[];
+      for(const w of words){
         const test = line ? line + ' ' + w : w;
         const m = ctx.measureText(test).width;
         if(m > maxWidth && line){ lines.push(line); line = w; }
@@ -162,68 +136,140 @@ function setBg(file){
       if(line) lines.push(line);
       return lines;
     }
-    function loadImage(url){ return new Promise((res)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=()=>res(null); img.src=url; }); }
 
-    // Render principal
-    async function render(){
-      await ensureFonts();
-      const W=1080, H=1350; canvas.width=W; canvas.height=H; ctx.clearRect(0,0,W,H);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-
-      // 1) Fundo
-      if(bgImg){ drawCover(bgImg,0,0,W,H); }
-      else { ctx.fillStyle='#333'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#777'; ctx.font='600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48); }
-
-      // 2) Overlay
-      if(ovImg) ctx.drawImage(ovImg,0,0,W,H);
-
-      // 3) Tipografia
-      const brand = '#FFD400';
-      const HEADLINE_FONT_SIZE = 64; // Roboto Bold Italic
-      const HEADLINE_LEFT_PADDING = 80, HEADLINE_RIGHT_PADDING = 80;
-      const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE*1.24);
-
-      // Headline medidas
-      const headline = els.manchete.value || '';
-      ctx.fillStyle = '#fff'; ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      const allLines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
-      const lines = allLines.slice(0,6); const L = Math.max(1, lines.length);
-
-      // Base ancorada a 80px
-      const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L-1)*LINE_HEIGHT;
-
-      // Box amarelo (Editoria)
-      const badgeText = (els.destaque.value||'').toUpperCase();
-      const BADGE_FONT_SIZE = 64, BADGE_HEIGHT = 80, BADGE_LETTER_SPACING = 4, BADGE_LEFT_PADDING = 80, BADGE_RIGHT_PADDING = 20, OPTICAL_NUDGE_Y=0;
-
-      function textWidthWithSpacing(ctx, text, spacing){ let w=0; for(let i=0;i<text.length;i++){ w += ctx.measureText(text[i]).width; if(i<text.length-1) w += spacing; } return w; }
-      function fillTextWithSpacing(ctx, text, x, y, spacing){ let dx=x; for(let i=0;i<text.length;i++){ const ch=text[i]; ctx.fillText(ch, dx, y); dx += ctx.measureText(ch).width + (i<text.length-1?spacing:0); } }
-      function baselineMiddle(y,h,metrics,fallback){ if(metrics && metrics.actualBoundingBoxAscent!==undefined && metrics.actualBoundingBoxDescent!==undefined){ return y + (h + metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent)/2; } return y + h/2 + (fallback*0.1); }
-
-      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`; ctx.textBaseline='alphabetic';
-      const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
-      const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
-      const mHeadline = ctx.measureText(lines[0] || 'Ag');
-      const ascent = (mHeadline && mHeadline.actualBoundingBoxAscent!==undefined) ? mHeadline.actualBoundingBoxAscent : Math.round(HEADLINE_FONT_SIZE*0.8);
-      const firstLineTopY = yFirstBaseline - ascent;
-      const badgeY = firstLineTopY - CONFIG.GAP_BETWEEN_BOX_AND_TEXT - BADGE_HEIGHT;
-
-      // Desenha box
-      ctx.fillStyle = brand; ctx.fillRect(0, badgeY, badgeW, BADGE_HEIGHT);
-      // Texto Bebas centralizado verticalmente
-      ctx.fillStyle = '#111'; ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      const refMetrics = ctx.measureText('H');
-      const baselineY = Math.round(baselineMiddle(badgeY, BADGE_HEIGHT, refMetrics, BADGE_FONT_SIZE) + OPTICAL_NUDGE_Y);
-      const textX = BADGE_LEFT_PADDING; fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
-
-      // Manchete (linhas)
-      ctx.fillStyle = '#fff'; ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
-      let y = yFirstBaseline; for(const ln of lines){ ctx.fillText(ln, HEADLINE_LEFT_PADDING, y); y += LINE_HEIGHT; }
+    function loadImage(url){
+      return new Promise((res)=>{ if(!url) return res(null); const img=new Image(); img.onload=()=>res(img); img.onerror=()=>res(null); img.src=url; });
     }
 
-    // Baixar imagem: render + download
-    els.downloadBtn.addEventListener('click', async ()=>{ await render(); const a=document.createElement('a'); a.download='arte-manchete.png'; a.href=canvas.toDataURL('image/png'); a.click(); });
+    async function render(){
+      // aguarda as fontes (Bebas Neue / Poppins) para evitar fallback
+      await ensureFonts();
+      const W = 1080, H = 1350; // fixo
+      canvas.width = W; canvas.height = H;
+      ctx.clearRect(0,0,W,H);
+
+      // 1) Fundo (cover/crop)
+      if(bgURL){
+        const bg = await loadImage(bgURL);
+        if(bg) drawCover(bg,0,0,W,H);
+      } else {
+        ctx.fillStyle = '#333'; ctx.fillRect(0,0,W,H);
+        ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
+      }
+
+      // 2) Overlay fixa
+      const ov = await loadImage(OVERLAY_SRC);
+      if(ov) ctx.drawImage(ov, 0, 0, W, H);
+
+      // 3) Textos
+      const pad = Math.round(W*0.022);
+      const brand = '#FFD400';
+
+      // === Manchete: preparar medidas primeiro ===
+      const headline = els.manchete.value || '';
+      // Roboto Bold Italic
+      const HEADLINE_FONT_SIZE = 64; // px
+      const HEADLINE_LEFT_PADDING = 80; // px
+      const HEADLINE_RIGHT_PADDING = 80; // px
+      const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE * 1.24);
+      ctx.fillStyle = '#fff';
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      const allLines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
+      const lines = allLines.slice(0, 6);
+      const L = Math.max(1, lines.length);
+
+      // âncora do bloco pela base: última linha a 80px da margem inferior
+      const BOTTOM_MARGIN = CONFIG.BOTTOM_MARGIN; // px
+      const yFirstBaseline = H - BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
+
+      // === Box amarelo (acima da manchete), colado na esquerda (x=0) ===
+      const badgeText = (els.destaque.value||'').toUpperCase();
+
+      // Configurações exigidas
+      const BADGE_FONT_SIZE = 64;              // px (Bebas)
+      const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
+      const BADGE_LETTER_SPACING = 4;          // espaçamento entre letras (px)
+      const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
+      const BADGE_RIGHT_PADDING = 20;
+      const OPTICAL_NUDGE_Y = 0; // ajuste fino vertical (px). Se achar que ficou alto/baixo, mude aqui.          // padding à direita do texto
+
+      // Helpers para medir/desenhar com letter-spacing e alinhar ao centro vertical
+      function textWidthWithSpacing(ctx, text, spacing){
+        let w = 0; for(let i=0;i<text.length;i++){ const ch = text[i]; w += ctx.measureText(ch).width; if(i < text.length-1) w += spacing; } return w;
+      }
+      function fillTextWithSpacing(ctx, text, x, y, spacing){
+        let dx = x; for(let i=0;i<text.length;i++){ const ch = text[i]; ctx.fillText(ch, dx, y); dx += ctx.measureText(ch).width + (i < text.length-1 ? spacing : 0); }
+      }
+      function baselineMiddle(y, h, metrics, fallbackFontSize){
+        if(metrics && metrics.actualBoundingBoxAscent !== undefined && metrics.actualBoundingBoxDescent !== undefined){
+          return y + (h + metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent)/2;
+        }
+        return y + h/2 + (fallbackFontSize*0.1); // fallback aproximado
+      }
+
+      // Definir fonte Bebas para medir
+      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
+      ctx.textBaseline = 'alphabetic';
+
+      // Largura do texto com espaçamento e geometria do box
+      const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
+      const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
+      const badgeH = BADGE_HEIGHT;
+
+      // Aumentar distância entre o box e a manchete para não sobrepor
+      // distância entre o box e o TOPO da primeira linha (não a baseline)
+      const gapPx = CONFIG.GAP_BETWEEN_BOX_AND_TEXT;
+      // medir a altura acima da baseline (ascent) da primeira linha
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      const mHeadline = ctx.measureText(lines[0] || 'Ag');
+      const ascent = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined)
+        ? mHeadline.actualBoundingBoxAscent
+        : Math.round(HEADLINE_FONT_SIZE * 0.8); // fallback aproximado
+      // posicionar o box para que o seu fundo fique gapPx acima do topo visual do texto
+      const firstLineTopY = yFirstBaseline - ascent;
+      const badgeY = firstLineTopY - gapPx - badgeH;
+
+      // Desenhar box
+      ctx.fillStyle = brand;
+      ctx.fillRect(0, badgeY, badgeW, badgeH);
+
+      // Texto centralizado verticalmente dentro do box; respeita padding à esquerda (80px)
+      ctx.fillStyle = '#111';
+      // ⚠️ garantir que estamos medindo/desenhando com a fonte Bebas, não Roboto
+      ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
+      const refMetrics = ctx.measureText('H');
+      const baselineY = Math.round(baselineMiddle(badgeY, badgeH, refMetrics, BADGE_FONT_SIZE) + OPTICAL_NUDGE_Y);
+      const textX = BADGE_LEFT_PADDING; // 80px da borda esquerda do box
+      fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
+
+      // === Desenhar a manchete (em branco), abaixo do box ===
+      ctx.fillStyle = '#fff';
+      ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
+      let y = yFirstBaseline;
+      for(const ln of lines.slice(0,6)){
+        ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
+        y += Math.round(HEADLINE_FONT_SIZE * 1.24);
+      }
+
+      els.download.disabled = false;
+    }
+
+    els.render.addEventListener('click', render);
+
+    els.download.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'arte-manchete.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    els.clear.addEventListener('click', ()=>{
+      els.destaque.value = 'ALERTA';
+      els.manchete.value = '';
+      els.upload.value = '';
+      bgURL = null; ctx.clearRect(0,0,canvas.width, canvas.height);
+      els.download.disabled = true;
+    });
   </script>
 </body>
 </html>
