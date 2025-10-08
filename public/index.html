@@ -6,25 +6,63 @@
   <title>Gerador de Arte — Alerta + Manchete (Overlay fixa)</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{ --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400; }
+    :root{
+      --bg:#0b0b0c; --panel:#121316; --ink:#eaeaea; --muted:#9aa3ad; --brand:#ffd400;
+      --line:#23262d; --field:#0e1116; --ring:#2f5aff; --ring-alpha:0.35;
+    }
     *{box-sizing:border-box}
     body{margin:0;background:linear-gradient(180deg,#0d0f13,#0b0b0c);color:var(--ink);font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     header{padding:20px 24px 8px;display:flex;align-items:center;gap:12px}
     header h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
-    .app{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:0 24px 24px}
+    .app{display:grid;grid-template-columns:420px 1fr;gap:20px;padding:0 24px 24px}
     @media (max-width: 980px){ .app{grid-template-columns:1fr} }
-    .panel{background:var(--panel);border:1px solid #23262d;border-radius:16px;padding:16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .panel h2{margin:4px 6px 12px;font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.12em}
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 6px 6px}
-    input[type="text"], textarea{width:100%;border:1px solid #2a2f39;background:#0e1116;color:var(--ink);border-radius:10px;padding:10px 12px;font-size:14px;outline:none}
-    input[type="file"]{width:100%}
-    textarea{min-height:110px;resize:vertical}
-    .btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-    button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+
+    /* Painel */
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .panel h2{margin:4px 8px 14px;font-size:13px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.14em}
+
+    /* Campos minimalistas */
+    .field{margin:14px 8px}
+    .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+    .control{position:relative}
+    .input, .textarea{
+      width:100%; background:var(--field); color:var(--ink);
+      border:1px solid #2a2f39; border-radius:12px;
+      padding:14px 16px; font-size:15px; outline:none; transition:box-shadow .15s,border-color .15s;
+    }
+    .textarea{min-height:120px; resize:vertical; line-height:1.45}
+    .input:focus, .textarea:focus, .upload-btn:focus-visible{
+      border-color:rgba(47,90,255,.6);
+      box-shadow:0 0 0 4px rgba(47,90,255,var(--ring-alpha));
+    }
+
+    /* Upload moderno */
+    .upload-wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .upload-input{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0}
+    .upload-btn{
+      display:inline-flex; align-items:center; gap:10px;
+      background:#171a22; color:#f7fbff; border:1px solid #2a2f39;
+      border-radius:12px; padding:14px 16px; font-weight:600; cursor:pointer;
+      transition:transform .06s ease, box-shadow .15s ease, border-color .15s;
+      user-select:none;
+    }
+    .upload-btn:hover{border-color:#3a4150}
+    .upload-btn:active{transform:translateY(1px)}
+    .file-name{font-size:12px; color:var(--muted)}
+
+    /* Botões */
+    .btns{display:flex;gap:12px;margin:16px 8px 4px;flex-wrap:wrap}
+    button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:14px 18px;font-weight:700;cursor:pointer;font-size:15px}
     button.primary{background:var(--brand);color:#151515;border-color:#d6b700}
     button:disabled{opacity:.5;cursor:not-allowed}
-    .stage{background:#0b0c0e;border:1px solid #23262d;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}
-    .stage .canvas-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
+
+    /* Contadores */
+    .counter{margin-top:6px;font-size:12px;color:var(--muted);display:flex;justify-content:flex-end}
+    .counter.over{color:#ff7676}
+
+    /* Stage */
+    .stage{background:#0b0c0e;border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;gap:12px}
+    .stage .canvas-wrap{position:relative;border-radius:14px;overflow:hidden;background:#111}
     .ghost{font-size:13px;color:#9199a6}
   </style>
 </head>
@@ -38,15 +76,36 @@
     <section class="panel">
       <h2>Conteúdo</h2>
 
-      <!-- ORDEM: Foto de Fundo → Editoria → Manchete -->
-      <label for="upload">Foto de fundo</label>
-      <input id="upload" type="file" accept="image/*" />
+      <!-- Upload -->
+      <div class="field">
+        <label for="upload">Foto de fundo</label>
+        <div class="upload-wrap">
+          <input id="upload" class="upload-input" type="file" accept="image/*" />
+          <label for="upload" class="upload-btn" id="uploadBtn" title="Carregar imagem">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="#eaeaea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Carregar imagem
+          </label>
+          <span class="file-name" id="fileName">Nenhum arquivo selecionado</span>
+        </div>
+      </div>
 
-      <label for="destaque">Editoria</label>
-      <input id="destaque" type="text" placeholder="URGENTE" value="URGENTE" />
+      <!-- Editoria -->
+      <div class="field">
+        <label for="destaque">Editoria</label>
+        <div class="control">
+          <input id="destaque" class="input" type="text" placeholder="URGENTE" value="URGENTE" maxlength="24" />
+        </div>
+        <div class="counter" id="destaqueCounter">0 / 24</div>
+      </div>
 
-      <label for="manchete">Manchete</label>
-      <textarea id="manchete" placeholder="Digite a manchete..."></textarea>
+      <!-- Manchete -->
+      <div class="field">
+        <label for="manchete">Manchete</label>
+        <div class="control">
+          <textarea id="manchete" class="textarea" placeholder="Digite a manchete..." maxlength="240"></textarea>
+        </div>
+        <div class="counter" id="mancheteCounter">0 / 240</div>
+      </div>
 
       <div class="btns">
         <button id="download" class="primary" disabled>Baixar imagem</button>
@@ -55,7 +114,7 @@
 
     <section class="stage">
       <div class="canvas-wrap">
-        <canvas id="canvas" width="1080" height="1350" style="width:420px;height:auto;max-width:100%;touch-action:none;cursor:grab;"></canvas>
+        <canvas id="canvas" width="1080" height="1350" style="width: 440px; height: auto; max-width: 100%; touch-action: none; cursor: grab;"></canvas>
       </div>
       <div class="ghost">Dica: arraste para reposicionar a foto.</div>
     </section>
@@ -68,14 +127,20 @@
       GAP_BETWEEN_BOX_AND_TEXT: 36
     };
 
+    const LIMITS = { destaque: 24, manchete: 240 };
+
     const $ = (q) => document.querySelector(q);
     const canvas = $('#canvas');
-    let ctx = canvas.getContext('2d'); // será reatribuído após DPR a cada render
+    let ctx = canvas.getContext('2d'); // reatribuído após DPR a cada render
 
     const els = {
       destaque: $('#destaque'),
+      destaqueCounter: $('#destaqueCounter'),
       manchete: $('#manchete'),
+      mancheteCounter: $('#mancheteCounter'),
       upload:   $('#upload'),
+      uploadBtn: $('#uploadBtn'),
+      fileName: $('#fileName'),
       download: $('#download')
     };
 
@@ -93,7 +158,7 @@
       fontsLoaded = true;
     }
 
-    // --- Overlay (pré-carregada 1x para evitar "piscar") ---
+    // --- Overlay (pré-carregada 1x) ---
     const OVERLAY_SRC = 'overlay.png';
     let overlayImg = null;
 
@@ -122,22 +187,15 @@
       if(!bgImg) return;
       const { dw, dh } = computeCoverDims(bgImg, W, H);
       bgState.dw = dw; bgState.dh = dh;
-
-      // centraliza
       bgState.x = Math.floor((W - dw) / 2);
       bgState.y = Math.floor((H - dh) / 2);
-
-      // limites de arrasto
-      if (dw > W) { bgState.minX = W - dw; bgState.maxX = 0; }
-      else        { bgState.minX = bgState.maxX = bgState.x; }
-
-      if (dh > H) { bgState.minY = H - dh; bgState.maxY = 0; }
-      else        { bgState.minY = bgState.maxY = bgState.y; }
+      if (dw > W) { bgState.minX = W - dw; bgState.maxX = 0; } else { bgState.minX = bgState.maxX = bgState.x; }
+      if (dh > H) { bgState.minY = H - dh; bgState.maxY = 0; } else { bgState.minY = bgState.maxY = bgState.y; }
     }
 
     function clamp(val, min, max){ return Math.min(max, Math.max(min, val)); }
 
-    // ===== Helpers genéricos =====
+    // ===== Helpers =====
     function wrapText(text, maxWidth){
       const words = (text||'').split(/\s+/); let line = '', lines=[];
       for(const w of words){
@@ -179,27 +237,22 @@
       }
     }
 
-    // ===== Render (com DPR e sem "piscar") =====
+    // ===== Render =====
     async function render(){
       await ensureFonts();
 
-      // Canvas lógico
       const W = 1080, H = 1350;
-
-      // DPR/HiDPI
       const dpr = window.devicePixelRatio || 1;
       canvas.width = W * dpr;
       canvas.height = H * dpr;
 
       ctx = canvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // escala tudo
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0,0,W,H);
 
-      // 1) Fundo (cover + drag)
+      // 1) Fundo
       if(bgImg){
-        if(!bgState.dw || !bgState.dh){
-          centerAndClampBg(W, H);
-        }
+        if(!bgState.dw || !bgState.dh){ centerAndClampBg(W, H); }
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(bgImg, bgState.x, bgState.y, bgState.dw, bgState.dh);
       } else {
@@ -207,7 +260,7 @@
         ctx.fillStyle = '#777'; ctx.font = '600 28px Poppins'; ctx.fillText('Envie uma foto de fundo', 28, 48);
       }
 
-      // 2) Overlay (já carregada em memória)
+      // 2) Overlay
       if (overlayImg) ctx.drawImage(overlayImg, 0, 0, W, H);
 
       // 3) Textos
@@ -226,10 +279,9 @@
       const allLines = wrapText(headline, W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING);
       const lines = allLines.slice(0, 6);
       const L = Math.max(1, lines.length);
-
       const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
-      // Badge (box amarelo)
+      // Badge
       let badgeText = (els.destaque.value || '').toUpperCase().normalize('NFC');
       const BADGE_FONT_SIZE = 64;
       const BADGE_HEIGHT = 80;
@@ -238,14 +290,12 @@
       const BADGE_RIGHT_PADDING = 20;
       const OPTICAL_NUDGE_Y = 0;
 
-      // geometria do box
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
       ctx.textBaseline = 'alphabetic';
       const tWidth = textWidthWithSpacing(ctx, badgeText, BADGE_LETTER_SPACING);
       const badgeW = Math.min(W, Math.max(120, tWidth + BADGE_LEFT_PADDING + BADGE_RIGHT_PADDING));
       const badgeH = BADGE_HEIGHT;
 
-      // posição vertical do box a partir do topo visual da primeira linha
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       const mHeadline = ctx.measureText(lines[0] || 'Ag');
       const ascentHeadline = (mHeadline && mHeadline.actualBoundingBoxAscent !== undefined)
@@ -255,11 +305,9 @@
       const firstLineTopY = yFirstBaseline - ascentHeadline;
       const badgeY = firstLineTopY - CONFIG.GAP_BETWEEN_BOX_AND_TEXT - badgeH;
 
-      // desenha box
       ctx.fillStyle = brand;
       ctx.fillRect(0, badgeY, badgeW, badgeH);
 
-      // texto do badge (centrado verticalmente pela métrica do "H")
       ctx.fillStyle = '#111';
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
       const refMetrics = ctx.measureText('H');
@@ -269,7 +317,7 @@
       const textX = BADGE_LEFT_PADDING;
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
-      // manchete (linhas)
+      // linhas da manchete
       ctx.fillStyle = '#fff';
       ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto, system-ui, sans-serif`;
       let y = yFirstBaseline;
@@ -278,35 +326,54 @@
         y += LINE_HEIGHT;
       }
 
-      // habilita download
       els.download.disabled = false;
     }
 
-    // ===== Preview automático com RAF (suave) =====
+    // ===== Preview com RAF =====
     let rafId = 0;
     function scheduleRender(){
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => { rafId = 0; render(); });
     }
 
-    ['input','change'].forEach(evt => {
-      els.destaque.addEventListener(evt, scheduleRender);
-      els.manchete.addEventListener(evt, scheduleRender);
-    });
+    // ===== Contadores e limites =====
+    function updateCounter(el, counterEl, limit){
+      const len = el.value.length;
+      counterEl.textContent = `${len} / ${limit}`;
+      counterEl.classList.toggle('over', len > limit);
+    }
+    function enforceLimit(el, limit){
+      if (el.value.length > limit) el.value = el.value.slice(0, limit);
+    }
+
+    function handleLimitedInput(el, counterEl, limit){
+      enforceLimit(el, limit);
+      updateCounter(el, counterEl, limit);
+      scheduleRender();
+    }
+
+    // Inicializa contadores
+    updateCounter(els.destaque, els.destaqueCounter, LIMITS.destaque);
+    updateCounter(els.manchete, els.mancheteCounter, LIMITS.manchete);
+
+    // Listeners de texto
+    els.destaque.addEventListener('input', () => handleLimitedInput(els.destaque, els.destaqueCounter, LIMITS.destaque));
+    els.manchete.addEventListener('input', () => handleLimitedInput(els.manchete, els.mancheteCounter, LIMITS.manchete));
 
     // ===== Upload da foto =====
     els.upload.addEventListener('change', async () => {
-      if (els.upload.files && els.upload.files[0]) {
+      const file = els.upload.files && els.upload.files[0];
+      if (file){
         revokeBgURL();
-        bgURL = URL.createObjectURL(els.upload.files[0]);
+        bgURL = URL.createObjectURL(file);
         bgImg = await loadImage(bgURL);
-        if (bgImg){
-          centerAndClampBg(1080, 1350);
-        }
+        els.fileName.textContent = file.name || 'Imagem selecionada';
+        if (bgImg) centerAndClampBg(1080, 1350);
         scheduleRender();
       } else {
         revokeBgURL();
         bgImg = null;
+        els.fileName.textContent = 'Nenhum arquivo selecionado';
         scheduleRender();
       }
     });
@@ -364,10 +431,10 @@
     canvas.addEventListener('pointercancel', endDrag);
     canvas.addEventListener('pointerleave', endDrag);
 
-    // ===== Boot: carrega overlay e faz primeira render =====
+    // ===== Boot =====
     (async function boot(){
       overlayImg = await loadImage(OVERLAY_SRC);
-      scheduleRender(); // primeira render (sem piscar)
+      scheduleRender();
     })();
   </script>
 </body>
