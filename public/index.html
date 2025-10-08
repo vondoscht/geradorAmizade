@@ -73,7 +73,7 @@
     // ===== Configuração rápida =====
     // Altere aqui para ajustar espaçamentos sem mexer no resto do código
     const CONFIG = {
-      BOTTOM_MARGIN: 120,              // distância da ÚLTIMA linha de texto até a borda inferior
+      BOTTOM_MARGIN: 80,              // distância da ÚLTIMA linha de texto até a borda inferior
       GAP_BETWEEN_BOX_AND_TEXT: 40    // distância entre o fundo do box amarelo e o TOPO da 1ª linha
     };
 
@@ -190,7 +190,8 @@
       const BADGE_HEIGHT = 80;                 // altura fixa do box amarelo
       const BADGE_LETTER_SPACING = 2;          // espaçamento entre letras (px)
       const BADGE_LEFT_PADDING = 80;           // padding à esquerda do texto
-      const BADGE_RIGHT_PADDING = 20;          // padding à direita do texto
+      const BADGE_RIGHT_PADDING = 20;
+      const OPTICAL_NUDGE_Y = -2; // ajuste fino vertical (px). Se achar que ficou alto/baixo, mude aqui.          // padding à direita do texto
 
       // Helpers para medir/desenhar com letter-spacing e alinhar ao centro vertical
       function textWidthWithSpacing(ctx, text, spacing){
@@ -236,8 +237,8 @@
       ctx.fillStyle = '#111';
       // ⚠️ garantir que estamos medindo/desenhando com a fonte Bebas, não Roboto
       ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue", Poppins, sans-serif`;
-      const metrics = ctx.measureText(badgeText);
-      const baselineY = Math.round(baselineMiddle(badgeY, badgeH, metrics, BADGE_FONT_SIZE));
+      const refMetrics = ctx.measureText('H');
+      const baselineY = Math.round(baselineMiddle(badgeY, badgeH, refMetrics, BADGE_FONT_SIZE) + OPTICAL_NUDGE_Y);
       const textX = BADGE_LEFT_PADDING; // 80px da borda esquerda do box
       fillTextWithSpacing(ctx, badgeText, textX, baselineY, BADGE_LETTER_SPACING);
 
