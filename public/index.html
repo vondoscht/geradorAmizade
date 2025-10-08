@@ -34,53 +34,38 @@
       box-shadow:0 0 0 4px rgba(47,90,255,var(--ring-alpha));
     }
 
-   /* === Upload: Dropzone moderna === */
-.upload-wrap{ position:relative; }
+    /* === Upload: Dropzone moderna (full width) === */
+    .upload-wrap{position:relative}
+    .upload-input{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); border:0
+    }
+    .upload-btn{
+      display:flex; flex-direction:column; justify-content:center; align-items:center;
+      gap:10px;
+      width:100%; height:120px;
+      background:linear-gradient(180deg,#171a22,#12151c);
+      color:#e7edf5;
+      border:1px solid #2a2f39;
+      border-radius:16px;
+      font-weight:700; font-size:15px;
+      cursor:pointer; user-select:none;
+      transition:border-color .15s, box-shadow .15s, transform .06s;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .upload-btn svg{ display:block; width:22px; height:22px; opacity:.95 }
+    .upload-btn .hint{ font-weight:600; letter-spacing:.2px }
+    .upload-btn:hover{ border-color:#3a4150 }
+    .upload-btn:active{ transform:translateY(1px) }
+    .upload-btn.is-dragover{
+      border-color:var(--brand);
+      box-shadow:0 0 0 4px rgba(255,212,0,.25);
+    }
 
-.upload-input{           /* continua escondido e acessível */
-  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
-  overflow:hidden; clip:rect(0,0,0,0); border:0;
-}
-
-/* dropzone */
-.upload-btn{
-  /* mudou de "botão" para uma área de upload */
-  display:flex; flex-direction:column; justify-content:center; align-items:center;
-  gap:10px;
-  width:100%; height:120px;                /* altura mais generosa */
-  background:linear-gradient(180deg,#171a22,#12151c);
-  border:1px solid #2a2f39;
-  border-radius:16px;
-  cursor:pointer; user-select:none;
-  transition:border-color .15s, box-shadow .15s, transform .06s;
-  color:#e7edf5; font-weight:700; font-size:15px;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
-}
-.upload-btn svg{
-  display:block; width:22px; height:22px; opacity:.95;
-}
-.upload-btn .hint{
-  font-weight:600; letter-spacing:.2px;
-}
-
-.upload-btn:hover{ border-color:#3a4150; }
-.upload-btn:active{ transform:translateY(1px); }
-
-/* foco acessível */
-.upload-btn:focus-visible{
-  outline:none;
-  box-shadow:0 0 0 4px rgba(47,90,255,.35);
-  border-color:rgba(47,90,255,.6);
-}
-
-/* estado de drag-over */
-.upload-btn.is-dragover{
-  border-color:#ffd400; box-shadow:0 0 0 4px rgba(255,212,0,.25);
-}
-
-/* esconde o texto antigo de nome de arquivo (visual limpo) */
-.file-name{ display:none; }
-
+    .btns{display:flex;gap:12px;margin:16px 8px 4px;flex-wrap:wrap}
+    button{background:#1f2937;color:#f7fbff;border:1px solid #2a2f39;border-radius:12px;padding:14px 18px;font-weight:700;cursor:pointer;font-size:15px}
+    button.primary{background:var(--brand);color:#151515;border-color:#d6b700}
+    button:disabled{opacity:.5;cursor:not-allowed}
 
     .counter{margin-top:6px;font-size:12px;color:var(--muted);display:flex;justify-content:flex-end}
     .counter.over{color:#ff7676}
@@ -96,33 +81,8 @@
       color:#8892a0;
       padding:30px;
     }
-    .credits a{
-      color:#8892a0;
-      text-decoration:none;
-    }
-    .credits a:hover{
-      color:#c2c8d0; /* leve mudança, sem sublinhado */
-    }
-    /* botão de upload: centraliza de verdade */
-.upload-btn{
-  display:inline-flex;
-  align-items:center;   /* alinha ícone e texto no centro vertical */
-  gap:10px;
-  line-height:1;        /* evita “folga” vertical do texto */
-}
-
-/* o SVG inline vem alinhado pela baseline; como block, ele centraliza certinho */
-.upload-btn svg{
-  display:block;        /* remove espaço da baseline */
-  width:24px;
-  height:24px;
-}
-
-/* opcional: toque fino se ainda parecer 1px fora do centro em alguns SOs */
-@supports (-webkit-touch-callout: none) or (font:-apple-system-body){
-  .upload-btn svg{ transform: translateY(0.5px); }  /* ajuste ótico leve no macOS */
-}
-
+    .credits a{ color:#8892a0; text-decoration:none }
+    .credits a:hover{ color:#c2c8d0 }
   </style>
 </head>
 <body>
@@ -134,20 +94,18 @@
     <section class="panel">
       <!-- Upload -->
       <div class="field">
-  <label for="upload">Foto de fundo</label>
-  <div class="upload-wrap">
-    <input id="upload" class="upload-input" type="file" accept="image/*" />
-    <label for="upload" class="upload-btn" id="uploadBtn" title="Carregar imagem" tabindex="0">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="hint">Carregar imagem</span>
-    </label>
-    <span class="file-name" id="fileName">Nenhum arquivo selecionado</span>
-  </div>
-</div>
-
+        <label for="upload">Foto de fundo</label>
+        <div class="upload-wrap">
+          <input id="upload" class="upload-input" type="file" accept="image/*" />
+          <label for="upload" class="upload-btn" id="uploadBtn" title="Carregar imagem" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="hint">Carregar imagem</span>
+          </label>
+        </div>
+      </div>
 
       <!-- Editoria -->
       <div class="field">
@@ -206,7 +164,6 @@
       mancheteCounter: $('#mancheteCounter'),
       upload:   $('#upload'),
       uploadBtn: $('#uploadBtn'),
-      fileName: $('#fileName'),
       download: $('#download')
     };
 
@@ -431,39 +388,48 @@
     els.destaque.addEventListener('input', () => handleLimitedInput(els.destaque, els.destaqueCounter, LIMITS.destaque));
     els.manchete.addEventListener('input', () => handleLimitedInput(els.manchete, els.mancheteCounter, LIMITS.manchete));
 
-    // ===== Upload da foto =====
+    // ===== Upload da foto (click/select) =====
     els.upload.addEventListener('change', async () => {
       const file = els.upload.files && els.upload.files[0];
       if (file){
         revokeBgURL();
         bgURL = URL.createObjectURL(file);
         bgImg = await loadImage(bgURL);
-        els.fileName.textContent = file.name || 'Imagem selecionada';
         if (bgImg) centerAndClampBg(1080, 1350);
         scheduleRender();
       } else {
         revokeBgURL();
         bgImg = null;
-        els.fileName.textContent = 'Nenhum arquivo selecionado';
         scheduleRender();
       }
     });
 
+    // ===== Drag-over highlight + drop-to-upload =====
+    ['dragenter','dragover'].forEach(evt=>{
+      els.uploadBtn.addEventListener(evt, e=>{
+        e.preventDefault(); e.stopPropagation();
+        els.uploadBtn.classList.add('is-dragover');
+      });
+    });
+    ['dragleave','dragend'].forEach(evt=>{
+      els.uploadBtn.addEventListener(evt, e=>{
+        e.preventDefault(); e.stopPropagation();
+        els.uploadBtn.classList.remove('is-dragover');
+      });
+    });
+    els.uploadBtn.addEventListener('drop', async (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      els.uploadBtn.classList.remove('is-dragover');
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      if (!file.type || !file.type.startsWith('image/')) return;
 
-    // realce visual ao arrastar arquivos sobre a dropzone
-['dragenter','dragover'].forEach(evt=>{
-  els.uploadBtn.addEventListener(evt, e=>{
-    e.preventDefault(); e.stopPropagation();
-    els.uploadBtn.classList.add('is-dragover');
-  });
-});
-['dragleave','dragend','drop'].forEach(evt=>{
-  els.uploadBtn.addEventListener(evt, e=>{
-    e.preventDefault(); e.stopPropagation();
-    els.uploadBtn.classList.remove('is-dragover');
-  });
-});
-
+      revokeBgURL();
+      bgURL = URL.createObjectURL(file);
+      bgImg = await loadImage(bgURL);
+      if (bgImg) centerAndClampBg(1080, 1350);
+      scheduleRender();
+    });
 
     // ===== Download =====
     els.download.addEventListener('click', () => {
@@ -473,7 +439,7 @@
       link.click();
     });
 
-    // ===== Drag (Pointer Events) =====
+    // ===== Drag (reposicionar imagem no canvas) =====
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
     let imgStart = { x: 0, y: 0 };
