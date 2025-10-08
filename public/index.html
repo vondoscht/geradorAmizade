@@ -42,18 +42,17 @@
       <label for="upload">1. Foto de Fundo</label>
       <input id="upload" type="file" accept="image/*" />
 
-      <!-- 2) Editoria (antigo Alerta) -->
-      <label for="destaque">2. Editoria (ex.: ALERTA)</label>
-      <input id="destaque" type="text" placeholder="ALERTA" value="ALERTA" />
+      <!-- 2) Editoria -->
+      <label for="destaque">2. Editoria</label>
+      <input id="destaque" type="text" placeholder="URGENTE" value="URGENTE" />
 
       <!-- 3) Manchete -->
       <label for="manchete">3. Manchete</label>
-      <textarea id="manchete" placeholder="Ex.: Defesa Civil emite alerta de temporal; aulas suspensas na rede estadual"></textarea>
+      <textarea id="manchete" placeholder="Manchete" value="URGENTE" ></textarea>
 
       <div class="btns">
         <button id="downloadBtn" class="primary">Baixar Imagem</button>
       </div>
-      <p class="note">Pré-visualização em tempo real ao lado. A imagem final é 1080×1350 (alta) e a foto se adapta por <em>cover</em>.</p>
     </section>
 
     <section class="stage">
@@ -67,8 +66,8 @@
   <script>
     // ===== Config rápida =====
     const CONFIG = {
-      BOTTOM_MARGIN: 80,               // distância da ÚLTIMA linha até a borda inferior
-      GAP_BETWEEN_BOX_AND_TEXT: 16     // distância entre fundo do box e TOPO da 1ª linha
+      BOTTOM_MARGIN: 120,               // distância da ÚLTIMA linha até a borda inferior
+      GAP_BETWEEN_BOX_AND_TEXT: 40     // distância entre fundo do box e TOPO da 1ª linha
     };
 
     const $ = (q) => document.querySelector(q);
@@ -133,7 +132,8 @@
       ctx.drawImage(img, dx, dy, dw, dh);
     }
     function wrapText(text, maxWidth){
-      const sanitized = (text||'').replace(/\n/g,' ');
+      const sanitized = (text||'').replace(/
+/g,' ');
       const parts = sanitized.split(' ');
       let line = '', lines=[];
       for(const w of parts){
@@ -176,7 +176,7 @@
 
       // Box amarelo (Editoria)
       const badgeText = (els.destaque.value||'').toUpperCase();
-      const BADGE_FONT_SIZE = 64, BADGE_HEIGHT = 80, BADGE_LETTER_SPACING = 2, BADGE_LEFT_PADDING = 80, BADGE_RIGHT_PADDING = 10, OPTICAL_NUDGE_Y=0;
+      const BADGE_FONT_SIZE = 64, BADGE_HEIGHT = 80, BADGE_LETTER_SPACING = 4, BADGE_LEFT_PADDING = 80, BADGE_RIGHT_PADDING = 20, OPTICAL_NUDGE_Y=0;
 
       function textWidthWithSpacing(ctx, text, spacing){ let w=0; for(let i=0;i<text.length;i++){ w += ctx.measureText(text[i]).width; if(i<text.length-1) w += spacing; } return w; }
       function fillTextWithSpacing(ctx, text, x, y, spacing){ let dx=x; for(let i=0;i<text.length;i++){ const ch=text[i]; ctx.fillText(ch, dx, y); dx += ctx.measureText(ch).width + (i<text.length-1?spacing:0); } }
