@@ -513,8 +513,8 @@ yFirstBaseline -= OFFSET_Y;
 
     // ===== Boot =====
 (async function boot(){
-  overlayDefaultImg = await loadImage(OVERLAY_IG);
-  overlayAltImg = await loadImage(OVERLAY_FB);
+  overlayDefaultImg = await loadImage(OVERLAY_DEFAULT);
+  overlayAltImg = await loadImage(OVERLAY_ALT);
   scheduleRender();
 })();
 
