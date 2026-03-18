@@ -1,134 +1,203 @@
-// ALTERAÇÃO PRINCIPAL: suporte a duas overlays (normal + deslocada 100px para cima)
-// 👉 Adicione isso no topo das configs
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gerador de Arte • Rádio Amizade</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,700;1,700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+body{margin:0;background:#0b0b0c;color:#fff;font-family:Roboto}
+.app{display:grid;grid-template-columns:420px 1fr;gap:20px;padding:24px}
+.panel{background:#121316;padding:16px;border-radius:12px}
+.field{margin-bottom:12px}
+.input,.textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff}
+.textarea{min-height:100px}
+.btns{display:flex;gap:10px;margin-top:10px}
+button{padding:10px;border:none;border-radius:8px;cursor:pointer}
+.primary{background:#FFD400;color:#000}
+canvas{max-width:100%}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <section class="panel">
+    
+    <div class="field">
+      <input id="upload" type="file">
+    </div>
+
+    <div class="field">
+      <input id="destaque" class="input" value="NOTÍCIA">
+    </div>
+
+    <div class="field">
+      <textarea id="manchete" class="textarea"></textarea>
+    </div>
+
+    <div class="btns">
+      <button id="download" class="primary">Baixar 1</button>
+    </div>
+
+  </section>
+
+  <section>
+    <canvas id="canvas" width="1080" height="1350"></canvas>
+  </section>
+
+</div>
+
+<script>
 const CONFIG = {
   BOTTOM_MARGIN: 120,
   GAP_BETWEEN_BOX_AND_TEXT: 36,
-  VARIANT_OFFSET_Y: 100 // novo
+  VARIANT_OFFSET_Y: 100
 };
 
-// ===== NOVO: duas overlays =====
 const OVERLAY_DEFAULT = 'overlay.png';
-const OVERLAY_ALT = 'overlay-alt.png'; // nova overlay (mesmo tamanho 1080x1350)
+const OVERLAY_ALT = 'overlay-alt.png';
 
 let overlayDefaultImg = null;
 let overlayAltImg = null;
 
-// ===== ALTERAÇÃO NO BOOT =====
-(async function boot(){
-  overlayDefaultImg = await loadImage(OVERLAY_DEFAULT);
-  overlayAltImg = await loadImage(OVERLAY_ALT);
-  scheduleRender();
-})();
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-// ===== ALTERAÇÃO NO RENDER =====
-async function render(variant = 'default'){
-  await ensureFonts();
+const els = {
+  upload: document.getElementById("upload"),
+  destaque: document.getElementById("destaque"),
+  manchete: document.getElementById("manchete"),
+  download: document.getElementById("download")
+};
+
+let bgImg = null;
+
+// ===== LOAD IMAGE =====
+function loadImage(url){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>res(img);
+    img.src = url;
+  });
+}
+
+// ===== UPLOAD =====
+els.upload.addEventListener("change", async ()=>{
+  const file = els.upload.files[0];
+  if(!file) return;
+
+  const url = URL.createObjectURL(file);
+  bgImg = await loadImage(url);
+  render();
+});
+
+// ===== WRAP TEXT =====
+function wrapText(text, maxWidth){
+  const words = text.split(" ");
+  let line = "";
+  let lines = [];
+
+  for(const word of words){
+    const test = line + word + " ";
+    if(ctx.measureText(test).width > maxWidth){
+      lines.push(line);
+      line = word + " ";
+    }else{
+      line = test;
+    }
+  }
+
+  lines.push(line);
+  return lines;
+}
+
+// ===== RENDER =====
+async function render(variant = "default"){
 
   const W = 1080, H = 1350;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-
-  ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0,0,W,H);
 
-  // Fundo
+  // fundo
   if(bgImg){
-    if(!bgState.dw || !bgState.dh){ centerAndClampBg(W, H); }
-    ctx.drawImage(bgImg, bgState.x, bgState.y, bgState.dw, bgState.dh);
-  } else {
-    ctx.fillStyle = '#333'; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(bgImg,0,0,W,H);
+  }else{
+    ctx.fillStyle="#333";
+    ctx.fillRect(0,0,W,H);
   }
 
-  // Overlay
-  const overlayToUse = variant === 'alt' ? overlayAltImg : overlayDefaultImg;
-  if (overlayToUse) ctx.drawImage(overlayToUse, 0, 0, W, H);
+  // overlay
+  const overlay = variant === "alt" ? overlayAltImg : overlayDefaultImg;
+  if(overlay) ctx.drawImage(overlay,0,0,W,H);
 
-  // ===== OFFSET NOVO =====
-  const OFFSET_Y = variant === 'alt' ? CONFIG.VARIANT_OFFSET_Y : 0;
+  const OFFSET_Y = variant === "alt" ? CONFIG.VARIANT_OFFSET_Y : 0;
 
-  // ===== TEXTOS =====
-  const headline = (els.manchete.value || '');
-  const HEADLINE_FONT_SIZE = 64;
-  const HEADLINE_LEFT_PADDING = 80;
-  const HEADLINE_RIGHT_PADDING = 80;
-  const LINE_HEIGHT = Math.round(HEADLINE_FONT_SIZE * 1.24);
+  // texto
+  ctx.fillStyle="#fff";
+  ctx.font="bold italic 64px Roboto";
 
-  ctx.fillStyle = '#fff';
-  ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto`;
+  const lines = wrapText(els.manchete.value, 900).slice(0,5);
 
-  const maxTextW = W - HEADLINE_LEFT_PADDING - HEADLINE_RIGHT_PADDING;
-  const lines = wrapWithNewlinesNoBlank(headline, maxTextW).slice(0,6);
+  let y = H - CONFIG.BOTTOM_MARGIN - (lines.length * 70);
+  y -= OFFSET_Y;
 
-  const L = Math.max(1, lines.length);
-  let yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
-
-  // 👇 AQUI A MÁGICA
-  yFirstBaseline -= OFFSET_Y;
-
-  // Badge
-  let badgeText = (els.destaque.value || '').toUpperCase();
-
-  const BADGE_FONT_SIZE = 64;
-  const BADGE_HEIGHT = 80;
-  const BADGE_LEFT_PADDING = 80;
-
-  ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto`;
-  const mHeadline = ctx.measureText(lines[0] || 'Ag');
-  const ascentHeadline = mHeadline.actualBoundingBoxAscent || 50;
-
-  const firstLineTopY = yFirstBaseline - ascentHeadline;
-  const badgeY = firstLineTopY - CONFIG.GAP_BETWEEN_BOX_AND_TEXT - BADGE_HEIGHT;
-
-  ctx.fillStyle = '#FFD400';
-  ctx.fillRect(0, badgeY, 400, BADGE_HEIGHT);
-
-  ctx.fillStyle = '#111';
-  ctx.font = `400 ${BADGE_FONT_SIZE}px "Bebas Neue"`;
-  ctx.fillText(badgeText, BADGE_LEFT_PADDING, badgeY + 60);
-
-  // Texto
-  ctx.fillStyle = '#fff';
-  ctx.font = `700 italic ${HEADLINE_FONT_SIZE}px Roboto`;
-
-  let y = yFirstBaseline;
-  for(const ln of lines){
-    ctx.fillText(ln, HEADLINE_LEFT_PADDING, y);
-    y += LINE_HEIGHT;
+  for(const line of lines){
+    ctx.fillText(line,80,y);
+    y+=70;
   }
 
-  els.download.disabled = false;
+  // badge
+  ctx.fillStyle="#FFD400";
+  ctx.fillRect(0,y-200,400,80);
+
+  ctx.fillStyle="#000";
+  ctx.font="64px Bebas Neue";
+  ctx.fillText(els.destaque.value,80,y-140);
 }
 
-// ===== NOVO BOTÃO: gerar as duas =====
-function gerarDuasImagens(){
-  // versão normal
-  render('default');
-  setTimeout(()=>{
-    const img1 = canvas.toDataURL('image/png');
-    downloadImage(img1, 'noticia-IG.png');
+// ===== DOWNLOAD 1 =====
+els.download.onclick = ()=>{
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL();
+  link.download = "arte.png";
+  link.click();
+};
 
-    // versão deslocada
-    render('alt');
-    setTimeout(()=>{
-      const img2 = canvas.toDataURL('image/png');
-      downloadImage(img2, 'noticia-FB.png');
-    }, 100);
+// ===== DOWNLOAD 2 =====
+async function gerarDuas(){
 
-  }, 100);
+  await render("default");
+  const img1 = canvas.toDataURL();
+  download(img1,"arte-normal.png");
+
+  await render("alt");
+  const img2 = canvas.toDataURL();
+  download(img2,"arte-alt.png");
 }
 
-function downloadImage(data, name){
-  const a = document.createElement('a');
+function download(data,name){
+  const a = document.createElement("a");
   a.href = data;
   a.download = name;
   a.click();
 }
 
-// botão
-const btn = document.createElement('button');
-btn.textContent = 'Baixar 2 versões';
-btn.onclick = gerarDuasImagens;
-document.querySelector('.btns').appendChild(btn);
+// botão extra
+const btn = document.createElement("button");
+btn.textContent = "Baixar 2 versões";
+btn.onclick = gerarDuas;
+document.querySelector(".btns").appendChild(btn);
+
+// ===== BOOT =====
+(async ()=>{
+  overlayDefaultImg = await loadImage(OVERLAY_DEFAULT);
+  overlayAltImg = await loadImage(OVERLAY_ALT);
+  render();
+})();
+</script>
+
+</body>
+</html>
