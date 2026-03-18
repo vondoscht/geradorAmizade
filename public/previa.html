@@ -145,9 +145,9 @@
         <div class="counter" id="mancheteCounter">0 / 100</div>
       </div>
 
-      <div class="btns">
-        <button id="download" class="primary" disabled>Baixar imagem</button>
-      </div>
+    <div class="btns">
+  <button id="download" class="primary" disabled>Baixar imagens</button>
+</div>
     </section>
 
     <section class="stage">
@@ -459,12 +459,17 @@ yFirstBaseline -= OFFSET_Y;
     });
 
     // ===== Download =====
-    els.download.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'arte-manchete.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
+  els.download.addEventListener('click', async () => {
+  await render('default');
+  const img1 = canvas.toDataURL('image/png');
+  downloadImage(img1, 'noticia-IG.png');
+
+  await render('alt');
+  const img2 = canvas.toDataURL('image/png');
+  downloadImage(img2, 'noticia-FB.png');
+
+  await render('default'); // volta o preview para a versão padrão
+});
 
     // ===== Drag (reposicionar imagem no canvas) =====
     let isDragging = false;
@@ -525,20 +530,7 @@ yFirstBaseline -= OFFSET_Y;
   a.click();
 }
 
-async function gerarDuasImagens(){
-  await render('default');
-  const img1 = canvas.toDataURL('image/png');
-  downloadImage(img1, 'arte-normal.png');
 
-  await render('alt');
-  const img2 = canvas.toDataURL('image/png');
-  downloadImage(img2, 'arte-alt.png');
-}
-
-const btn = document.createElement('button');
-btn.textContent = 'Baixar 2 versões';
-btn.onclick = gerarDuasImagens;
-document.querySelector('.btns').appendChild(btn);
   </script>
 </body>
 </html>
