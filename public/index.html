@@ -145,9 +145,9 @@
         <div class="counter" id="mancheteCounter">0 / 100</div>
       </div>
 
-      <div class="btns">
-        <button id="download" class="primary" disabled>Baixar imagem</button>
-      </div>
+    <div class="btns">
+  <button id="download" class="primary" disabled>Baixar imagens</button>
+</div>
     </section>
 
     <section class="stage">
@@ -162,7 +162,8 @@
     // ===== Configuração rápida =====
     const CONFIG = {
       BOTTOM_MARGIN: 120,
-      GAP_BETWEEN_BOX_AND_TEXT: 36
+      GAP_BETWEEN_BOX_AND_TEXT: 36,
+      VARIANT_OFFSET_Y: 100
     };
 
     // Limites de caracteres
@@ -197,8 +198,11 @@
     }
 
     // --- Overlay (pré-carregada 1x) ---
-    const OVERLAY_SRC = 'overlay.png';
-    let overlayImg = null;
+const OVERLAY_DEFAULT = 'overlay-IG.png';
+const OVERLAY_ALT = 'overlay-FB.png';
+
+let overlayDefaultImg = null;
+let overlayAltImg = null;
 
     // ===== Estado da imagem de fundo + drag =====
     let bgURL = null;
@@ -284,7 +288,7 @@
     }
 
     // ===== Render =====
-    async function render(){
+async function render(variant = 'default'){
       await ensureFonts();
 
       const W = 1080, H = 1350;
@@ -307,8 +311,9 @@
       }
 
       // 2) Overlay
-      if (overlayImg) ctx.drawImage(overlayImg, 0, 0, W, H);
-
+const overlayToUse = variant === 'alt' ? overlayAltImg : overlayDefaultImg;
+if (overlayToUse) ctx.drawImage(overlayToUse, 0, 0, W, H);
+  
       // 3) Textos
       const brand = '#FFD400';
 
@@ -327,8 +332,11 @@
       const lines = wrappedAll.slice(0, 6); // nunca inclui linhas vazias
       const L = Math.max(1, lines.length);
       const firstTextLine = lines[0] || 'Ag';
-      const yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
+let yFirstBaseline = H - CONFIG.BOTTOM_MARGIN - (L - 1) * LINE_HEIGHT;
 
+const OFFSET_Y = variant === 'alt' ? CONFIG.VARIANT_OFFSET_Y : 0;
+yFirstBaseline -= OFFSET_Y;
+  
       // Badge
       let badgeText = (els.destaque.value || '').toUpperCase().normalize('NFC');
       const BADGE_FONT_SIZE = 64;
@@ -451,12 +459,17 @@
     });
 
     // ===== Download =====
-    els.download.addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.download = 'arte-manchete.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    });
+  els.download.addEventListener('click', async () => {
+  await render('default');
+  const img1 = canvas.toDataURL('image/png');
+  downloadImage(img1, 'noticia-IG.png');
+
+  await render('alt');
+  const img2 = canvas.toDataURL('image/png');
+  downloadImage(img2, 'noticia-FB.png');
+
+  await render('default'); // volta o preview para a versão padrão
+});
 
     // ===== Drag (reposicionar imagem no canvas) =====
     let isDragging = false;
@@ -504,10 +517,20 @@
     canvas.addEventListener('pointerleave', endDrag);
 
     // ===== Boot =====
-    (async function boot(){
-      overlayImg = await loadImage(OVERLAY_SRC);
-      scheduleRender();
-    })();
+(async function boot(){
+  overlayDefaultImg = await loadImage(OVERLAY_DEFAULT);
+  overlayAltImg = await loadImage(OVERLAY_ALT);
+  scheduleRender();
+})();
+
+    function downloadImage(data, name){
+  const a = document.createElement('a');
+  a.href = data;
+  a.download = name;
+  a.click();
+}
+
+
   </script>
 </body>
 </html>
