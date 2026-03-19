@@ -462,11 +462,11 @@ yFirstBaseline -= OFFSET_Y;
   els.download.addEventListener('click', async () => {
   await render('default');
   const img1 = canvas.toDataURL('image/png');
-  downloadImage(img1, 'noticia-IG.png');
+  downloadImage(img1, 'noticia-sem-marcas.png');
 
   await render('alt');
   const img2 = canvas.toDataURL('image/png');
-  downloadImage(img2, 'noticia-FB.png');
+  downloadImage(img2, 'noticia-com-marcas.png');
 
   await render('default'); // volta o preview para a versão padrão
 });
